@@ -46,6 +46,15 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .color(WHITE);
     });
     // draw cell bounds
-
+    model.voronoi.iter_cells().for_each(|cell| {
+        // cell verts are in Points which can't Into a Vec2, stupidly
+        // so copy the cell and manually convert it ..?
+        let cell2: Vec<Vec2> = cell
+            .clone()
+            .iter_vertices()
+            .map(|vert| Vec2::new(vert.x as f32, vert.y as f32))
+            .collect();
+        draw.polyline().weight(1.0).points(cell2).color(WHITE);
+    });
     draw.to_frame(app, &frame).unwrap();
 }
