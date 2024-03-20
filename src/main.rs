@@ -8,12 +8,24 @@ fn main() {
 #[derive(Clone)]
 struct Agent {
     pos: Point,
-    angle: f32,
+    angle: f64,
+}
+
+impl Agent {
+    fn update(&mut self) {
+        // add a little noise to the angle
+        self.angle += 0.2 * random_range(-1.0, 1.0);
+        // step the position
+        self.pos.x += self.angle.cos();
+        self.pos.y += self.angle.sin();
+        // wrap around the position // todo
+    }
 }
 
 struct Model {
     agents: Vec<Agent>,
     voronoi: Voronoi,
+    win: Rect,
 }
 
 impl Model {
@@ -25,14 +37,18 @@ impl Model {
                     x: random_range(win.left().into(), win.right().into()),
                     y: random_range(win.bottom().into(), win.top().into()),
                 },
-                angle: random_range(-PI, PI),
+                angle: random_range(-PI as f64, PI as f64),
             })
             .collect();
 
         let voronoi =
             Model::build_voronoi(agents.clone().into_iter().map(|a| a.pos).collect(), win);
 
-        Model { agents, voronoi }
+        Model {
+            agents,
+            voronoi,
+            win,
+        }
     }
 
     fn get_sites(&self) -> Vec<&Point> {
@@ -46,6 +62,13 @@ impl Model {
             .build()
             .expect("Provided sites don't generate a valid voronoi graph")
     }
+
+    fn rebuild_voronoi(&mut self) {
+        self.voronoi = Model::build_voronoi(
+            self.agents.clone().into_iter().map(|a| a.pos).collect(),
+            self.win,
+        );
+    }
 }
 
 fn model(app: &App) -> Model {
@@ -53,7 +76,12 @@ fn model(app: &App) -> Model {
     Model::new(win)
 }
 
-fn update(_app: &App, _model: &mut Model, _update: Update) {}
+fn update(_app: &App, model: &mut Model, _update: Update) {
+    // update agents
+    model.agents.iter_mut().for_each(|agent| agent.update());
+    // redraw voronoi cells
+    model.rebuild_voronoi();
+}
 
 fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
