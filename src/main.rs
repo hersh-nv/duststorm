@@ -5,32 +5,52 @@ fn main() {
     nannou::app(model).update(update).simple_window(view).run();
 }
 
+#[derive(Clone)]
+struct Agent {
+    pos: Point,
+    angle: f32,
+}
+
 struct Model {
-    sites: Vec<Point>,
+    agents: Vec<Agent>,
     voronoi: Voronoi,
 }
 
+impl Model {
+    fn new(win: Rect) -> Self {
+        let agent_count = 50;
+        let agents: Vec<Agent> = (0..agent_count)
+            .map(|_| Agent {
+                pos: Point {
+                    x: random_range(win.left().into(), win.right().into()),
+                    y: random_range(win.bottom().into(), win.top().into()),
+                },
+                angle: random_range(-PI, PI),
+            })
+            .collect();
+
+        let voronoi =
+            Model::build_voronoi(agents.clone().into_iter().map(|a| a.pos).collect(), win);
+
+        Model { agents, voronoi }
+    }
+
+    fn get_sites(&self) -> Vec<&Point> {
+        self.agents.iter().map(|a| &a.pos).collect()
+    }
+
+    fn build_voronoi(sites: Vec<Point>, win: Rect) -> Voronoi {
+        VoronoiBuilder::default()
+            .set_sites(sites)
+            .set_bounding_box(BoundingBox::new_centered(win.w().into(), win.h().into()))
+            .build()
+            .expect("Provided sites don't generate a valid voronoi graph")
+    }
+}
+
 fn model(app: &App) -> Model {
-    let winrect = app.window_rect();
-
-    let site_count = 50;
-    let sites: Vec<Point> = (0..site_count)
-        .map(|_| Point {
-            x: random_range(winrect.left().into(), winrect.right().into()),
-            y: random_range(winrect.left().into(), winrect.right().into()),
-        })
-        .collect();
-
-    let voronoi = VoronoiBuilder::default()
-        .set_sites(sites.clone())
-        .set_bounding_box(BoundingBox::new_centered(
-            winrect.w().into(),
-            winrect.h().into(),
-        ))
-        .build()
-        .expect("Provided sites don't generate a valid voronoi graph");
-
-    Model { sites, voronoi }
+    let win = app.window_rect();
+    Model::new(win)
 }
 
 fn update(_app: &App, _model: &mut Model, _update: Update) {}
@@ -39,7 +59,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
     draw.background().color(BLACK);
     // draw points
-    model.sites.iter().for_each(|site| {
+    model.get_sites().iter().for_each(|site| {
         draw.ellipse()
             .x_y(site.x as f32, site.y as f32)
             .radius(1.0)
