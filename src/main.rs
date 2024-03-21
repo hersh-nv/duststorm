@@ -12,12 +12,21 @@ struct Agent {
 }
 
 impl Agent {
-    fn update(&mut self) {
+    fn update1(&mut self) {
+        // velocity random walk
         // add a little noise to the angle
         self.angle += 0.2 * random_range(-1.0, 1.0);
         // step the position
         self.pos.x += self.angle.cos();
         self.pos.y += self.angle.sin();
+        // wrap around the position // todo
+    }
+
+    fn update2(&mut self) {
+        // position random walk
+        // step the position
+        self.pos.x += 2.5 * random_range(-1.0, 1.0);
+        self.pos.y += 2.5 * random_range(-1.0, 1.0);
         // wrap around the position // todo
     }
 }
@@ -30,7 +39,7 @@ struct Model {
 
 impl Model {
     fn new(win: Rect) -> Self {
-        let agent_count = 50;
+        let agent_count = 200;
         let agents: Vec<Agent> = (0..agent_count)
             .map(|_| Agent {
                 pos: Point {
@@ -78,7 +87,7 @@ fn model(app: &App) -> Model {
 
 fn update(_app: &App, model: &mut Model, _update: Update) {
     // update agents
-    model.agents.iter_mut().for_each(|agent| agent.update());
+    model.agents.iter_mut().for_each(|agent| agent.update1());
     // redraw voronoi cells
     model.rebuild_voronoi();
 }
