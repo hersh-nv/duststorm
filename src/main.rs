@@ -9,17 +9,30 @@ fn main() {
 struct Agent {
     pos: Point,
     angle: f64,
+    step_size: f64,
 }
 
 impl Agent {
-    fn update1(&mut self) {
+    fn update1(&mut self, win: Rect) {
         // velocity random walk
         // add a little noise to the angle
         self.angle += 0.2 * random_range(-1.0, 1.0);
         // step the position
-        self.pos.x += self.angle.cos();
-        self.pos.y += self.angle.sin();
-        // wrap around the position // todo
+        self.pos.x += self.angle.cos() * self.step_size;
+        self.pos.y += self.angle.sin() * self.step_size;
+        // turn around if approaching the edges
+        if self.pos.x + self.angle.cos() * self.step_size * 20.0 < win.left().into() {
+            self.angle = PI as f64 - self.angle;
+        }
+        if self.pos.x + self.angle.cos() * self.step_size * 20.0 > win.right().into() {
+            self.angle = PI as f64 - self.angle;
+        }
+        if self.pos.y + self.angle.sin() * self.step_size * 20.0 < win.bottom().into() {
+            self.angle = -self.angle;
+        }
+        if self.pos.y + self.angle.sin() * self.step_size * 20.0 > win.top().into() {
+            self.angle = -self.angle;
+        }
     }
 
     fn update2(&mut self) {
@@ -47,6 +60,7 @@ impl Model {
                     y: random_range(win.bottom().into(), win.top().into()),
                 },
                 angle: random_range(-PI as f64, PI as f64),
+                step_size: 0.3,
             })
             .collect();
 
@@ -87,7 +101,10 @@ fn model(app: &App) -> Model {
 
 fn update(_app: &App, model: &mut Model, _update: Update) {
     // update agents
-    model.agents.iter_mut().for_each(|agent| agent.update1());
+    model
+        .agents
+        .iter_mut()
+        .for_each(|agent| agent.update1(model.win));
     // redraw voronoi cells
     model.rebuild_voronoi();
 }
