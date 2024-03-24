@@ -8,3 +8,7 @@ edition = "2021"
 [dependencies]
 nannou = "0.19.0"
 voronoice = "0.2.0"
+
+[[bin]]
+name = "voronoi"
+path = "src/voronoi.rs"
