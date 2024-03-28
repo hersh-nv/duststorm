@@ -1,3 +1,10 @@
+// Draw a collection of voronoi cells, animated while their sites randomly
+// wander around.
+
+// There's some mildly annoying mixing of float sizes back and forth here,
+// because the voronoice lib uses f64s while nannou and rust's math constants
+// use f32s.
+
 use nannou::prelude::*;
 use voronoice::*;
 
