@@ -60,7 +60,7 @@ impl Agent {
         self.pos.y += angle.sin() * self.step_size;
         // then take a proportional step in the target direction
         let dxy = target - self.pos;
-        let dxy = dxy * 0.02; // acceleration factor, tweak for best results
+        let dxy = dxy * 0.05; // acceleration factor, tweak for best results
         self.pos.x += dxy.x;
         self.pos.y += dxy.y;
     }
@@ -77,7 +77,7 @@ struct Model {
 impl Model {
     pub fn new(win: Rect) -> Self {
         let agent_count = 100;
-        let noise_scale = 300.0;
+        let noise_scale = 220.0;
         let noise_seed = random::<u32>();
         let perlin = Perlin::new().set_seed(noise_seed);
         let agents = (0..agent_count)
