@@ -45,20 +45,22 @@ impl std::ops::Mul<f32> for Pos {
 
 struct Agent {
     pos: Pos,       // (x,y) position
-    theta: f32,     // angle facing? maybe nix
     step_size: f32, // ??
 }
 
 impl Agent {
-    pub fn update(&mut self, noise: Perlin, target: Pos) {
+    pub fn update(&mut self, noise: Perlin, target: Pos, noise_scale: f64) {
         // take a fixed step in the noise direction
-        let angle = noise.get([self.pos.x as f64, self.pos.y as f64]) as f32;
+        let angle = noise.get([
+            self.pos.x as f64 / noise_scale,
+            self.pos.y as f64 / noise_scale,
+        ]) as f32;
         let angle = angle * 2.0 * PI;
         self.pos.x += angle.cos() * self.step_size;
         self.pos.y += angle.sin() * self.step_size;
         // then take a proportional step in the target direction
         let dxy = target - self.pos;
-        let dxy = dxy * 0.001; // acceleration factor, tweak for best results
+        let dxy = dxy * 0.02; // acceleration factor, tweak for best results
         self.pos.x += dxy.x;
         self.pos.y += dxy.y;
     }
@@ -67,6 +69,7 @@ impl Agent {
 struct Model {
     perlin: Perlin,
     noise_seed: u32,
+    noise_scale: f64,
     pub agents: Vec<Agent>,
     win: Rect,
 }
@@ -74,6 +77,7 @@ struct Model {
 impl Model {
     pub fn new(win: Rect) -> Self {
         let agent_count = 100;
+        let noise_scale = 300.0;
         let noise_seed = random::<u32>();
         let perlin = Perlin::new().set_seed(noise_seed);
         let agents = (0..agent_count)
@@ -82,13 +86,13 @@ impl Model {
                     random_range(win.left(), win.right()),
                     random_range(win.bottom(), win.top()),
                 ),
-                theta: 0f32,
                 step_size: 10f32,
             })
             .collect();
         Model {
             perlin,
             noise_seed,
+            noise_scale,
             agents,
             win,
         }
@@ -107,7 +111,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     model
         .agents
         .iter_mut()
-        .for_each(|a| a.update(model.perlin, Pos::new(0f32, 0f32)))
+        .for_each(|a| a.update(model.perlin, Pos::new(0f32, 0f32), model.noise_scale))
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
