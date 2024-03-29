@@ -7,7 +7,7 @@ use nannou::prelude::*;
 use nannou::text::rt::Point;
 
 fn main() {
-    nannou::app(model).update(update).simple_window(view).run();
+    nannou::app(model).update(update).run();
 }
 
 #[derive(Copy, Clone)]
@@ -104,6 +104,11 @@ impl Model {
 }
 
 fn model(app: &App) -> Model {
+    app.new_window()
+        .view(view)
+        .key_released(key_released)
+        .build()
+        .unwrap();
     Model::new(app.window_rect())
 }
 
@@ -124,4 +129,17 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .color(WHITE);
     });
     draw.to_frame(app, &frame).unwrap();
+}
+
+fn key_released(app: &App, model: &mut Model, key: Key) {
+    match key {
+        Key::Space => {
+            model.noise_seed = (random_f32() * 10000.0).floor() as u32;
+            model.perlin = Perlin::new().set_seed(model.noise_seed);
+        }
+        Key::R => {
+            *model = Model::new(app.window_rect());
+        }
+        _other_key => {}
+    }
 }
