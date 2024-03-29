@@ -1,5 +1,5 @@
+use nannou::noise::Perlin;
 use nannou::prelude::*;
-use noise::Perlin;
 
 fn main() {
     nannou::app(model).update(update).simple_window(view).run();
@@ -22,7 +22,7 @@ struct Model {
 impl Model {
     pub fn new(win: Rect) -> Self {
         let agent_count = 100;
-        let perlin = Perlin::new(random::<u32>());
+        let perlin = Perlin::new();
         let agents = (0..agent_count)
             .map(|_| Agent {
                 pos: (
