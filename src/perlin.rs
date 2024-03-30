@@ -65,6 +65,9 @@ impl Agent {
         let dxy = dxy * 0.025; // acceleration factor, tweak for best results
         self.pos.x += dxy.x;
         self.pos.y += dxy.y;
+
+        // lastly - push z offset a bit so we're constantly sliding up the x axis of the noise space
+        self.z_offset += 0.01;
     }
 }
 
@@ -136,8 +139,8 @@ fn model(app: &App) -> Model {
 fn update(app: &App, model: &mut Model, _update: Update) {
     match model.draw_mode {
         DrawMode::Circle => {
-            let theta = app.time * PI * 1.0;
-            let r = 500f32;
+            let theta = app.time * PI * -1.0;
+            let r = 300f32;
             model.target = Pos::new(r * theta.cos(), r * theta.sin());
         }
         DrawMode::Mouse => model.target = Pos::new(app.mouse.x, app.mouse.y),
