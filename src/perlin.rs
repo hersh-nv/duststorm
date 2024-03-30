@@ -66,6 +66,11 @@ impl Agent {
     }
 }
 
+enum DrawMode {
+    Circle,
+    Mouse,
+}
+
 struct Model {
     perlin: Perlin,
     noise_seed: u32,
@@ -73,6 +78,7 @@ struct Model {
     pub agents: Vec<Agent>,
     win: Rect,
     pub target: Pos,
+    pub draw_mode: DrawMode,
 }
 
 impl Model {
@@ -94,6 +100,8 @@ impl Model {
             })
             .collect();
         let target = Pos::new(0f32, 0f32);
+        let draw_mode = DrawMode::Circle;
+
         Model {
             perlin,
             noise_seed,
@@ -101,6 +109,7 @@ impl Model {
             agents,
             win,
             target,
+            draw_mode,
         }
     }
 
@@ -119,9 +128,15 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, model: &mut Model, _update: Update) {
-    let theta = app.time * PI * 1.3;
-    let r = 100f32;
-    model.target = Pos::new(r * theta.cos(), r * theta.sin());
+    match model.draw_mode {
+        DrawMode::Circle => {
+            let theta = app.time * PI * 1.3;
+            let r = 100f32;
+            model.target = Pos::new(r * theta.cos(), r * theta.sin());
+        }
+        DrawMode::Mouse => model.target = Pos::new(app.mouse.x, app.mouse.y),
+    }
+
     model
         .agents
         .iter_mut()
@@ -147,6 +162,12 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
 fn key_released(app: &App, model: &mut Model, key: Key) {
     match key {
+        Key::Key1 => {
+            model.draw_mode = DrawMode::Circle;
+        }
+        Key::Key2 => {
+            model.draw_mode = DrawMode::Mouse;
+        }
         Key::Space => {
             model.noise_seed = (random_f32() * 10000.0).floor() as u32;
             model.perlin = Perlin::new().set_seed(model.noise_seed);
