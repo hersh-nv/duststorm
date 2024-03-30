@@ -82,12 +82,15 @@ impl Model {
         let noise_seed = random::<u32>();
         let perlin = Perlin::new().set_seed(noise_seed);
         let agents = (0..agent_count)
-            .map(|_| Agent {
-                pos: Pos::new(
-                    random_range(win.left(), win.right()),
-                    random_range(win.bottom(), win.top()),
-                ),
-                step_size: 10f32,
+            .map(|_| {
+                // random r and theta around centre
+                let maxdim = f32::max(win.right(), win.top());
+                let r = random_range(0f32, maxdim);
+                let theta = random_range(0f32, 2.0 * PI);
+                Agent {
+                    pos: Pos::new(r * theta.cos(), r * theta.sin()),
+                    step_size: 10f32,
+                }
             })
             .collect();
         let target = Pos::new(0f32, 0f32);
