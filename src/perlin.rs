@@ -3,8 +3,8 @@
 use std::process::Output;
 
 use nannou::noise::{NoiseFn, Perlin, Seedable};
-use nannou::prelude::*;
 use nannou::text::rt::Point;
+use nannou::{frame, prelude::*};
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -55,7 +55,7 @@ impl Agent {
             self.pos.x as f64 / noise_scale,
             self.pos.y as f64 / noise_scale,
         ]) as f32;
-        let angle = angle * 2.0 * PI;
+        let angle = angle * 10.0 * PI;
         self.pos.x += angle.cos() * self.step_size;
         self.pos.y += angle.sin() * self.step_size;
         // then take a proportional step in the target direction
@@ -72,12 +72,13 @@ struct Model {
     noise_scale: f64,
     pub agents: Vec<Agent>,
     win: Rect,
+    pub target: Pos,
 }
 
 impl Model {
     pub fn new(win: Rect) -> Self {
         let agent_count = 100;
-        let noise_scale = 220.0;
+        let noise_scale = 250.0;
         let noise_seed = random::<u32>();
         let perlin = Perlin::new().set_seed(noise_seed);
         let agents = (0..agent_count)
@@ -89,12 +90,14 @@ impl Model {
                 step_size: 10f32,
             })
             .collect();
+        let target = Pos::new(0f32, 0f32);
         Model {
             perlin,
             noise_seed,
             noise_scale,
             agents,
             win,
+            target,
         }
     }
 
@@ -112,11 +115,14 @@ fn model(app: &App) -> Model {
     Model::new(app.window_rect())
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model, _update: Update) {
+    let theta = app.time * PI * 1.3;
+    let r = 100f32;
+    model.target = Pos::new(r * theta.cos(), r * theta.sin());
     model
         .agents
         .iter_mut()
-        .for_each(|a| a.update(model.perlin, Pos::new(0f32, 0f32), model.noise_scale))
+        .for_each(|a| a.update(model.perlin, model.target, model.noise_scale))
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
@@ -128,6 +134,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .radius(1.0)
             .color(WHITE);
     });
+    //draw target
+    draw.ellipse()
+        .x_y(model.target.x, model.target.y)
+        .radius(1.0)
+        .color(RED);
     draw.to_frame(app, &frame).unwrap();
 }
 
