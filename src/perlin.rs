@@ -94,16 +94,10 @@ impl Model {
         let noise_seed = random::<u32>();
         let perlin = Perlin::new().set_seed(noise_seed);
         let agents = (0..agent_count)
-            .map(|_| {
-                // random r and theta around centre
-                let maxdim = f32::max(win.right(), win.top());
-                let r = random_range(0f32, maxdim);
-                let theta = random_range(0f32, 2.0 * PI);
-                Agent {
-                    pos: Pos::new(r * theta.cos(), r * theta.sin()),
-                    step_size: 6f32,
-                    z_offset: random_range(0f32, 1f32),
-                }
+            .map(|_| Agent {
+                pos: Pos::new(0f32, 0f32),
+                step_size: 6f32,
+                z_offset: random_range(0f32, 1f32),
             })
             .collect();
         let target = Pos::new(0f32, 0f32);
@@ -120,6 +114,19 @@ impl Model {
             draw_mode,
             draw_target,
         }
+    }
+
+    pub fn reset_agents(&mut self) {
+        self.agents = (0..self.agents.len())
+            .map(|_| {
+                // random r and theta around centre
+                Agent {
+                    pos: Pos::new(0f32, 0f32),
+                    step_size: 6f32,
+                    z_offset: random_range(0f32, 1f32),
+                }
+            })
+            .collect();
     }
 
     pub fn agents_pos(&self) -> Vec<Pos> {
@@ -154,22 +161,22 @@ fn update(app: &App, model: &mut Model, _update: Update) {
 
 fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
-    if frame.nth() == 0 {
+    if frame.nth() == 0 || app.keys.down.contains(&Key::R) {
         draw.background().color(BLACK);
     } else {
         // draw.background().color(BLACK);
         draw.rect()
             .wh(app.window_rect().wh())
             .rgba(0.0, 0.0, 0.0, 0.05);
-    }
-    // draw agents
-    if frame.nth() % 1 == 0 {
-        model.agents_pos().iter().for_each(|a_pos| {
-            draw.ellipse()
-                .x_y(a_pos.x, a_pos.y)
-                .radius(0.8)
-                .color(WHITE);
-        });
+        // draw agents
+        if frame.nth() % 1 == 0 {
+            model.agents_pos().iter().for_each(|a_pos| {
+                draw.ellipse()
+                    .x_y(a_pos.x, a_pos.y)
+                    .radius(0.8)
+                    .color(WHITE);
+            });
+        }
     }
     //draw target
     if model.draw_target {
@@ -200,7 +207,7 @@ fn key_released(app: &App, model: &mut Model, key: Key) {
             model.perlin = Perlin::new().set_seed(model.noise_seed);
         }
         Key::R => {
-            *model = Model::new(app.window_rect());
+            model.reset_agents();
         }
         _other_key => {}
     }
