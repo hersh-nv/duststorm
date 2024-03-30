@@ -162,11 +162,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
 fn key_released(app: &App, model: &mut Model, key: Key) {
     match key {
-        Key::Key1 => {
-            model.draw_mode = DrawMode::Circle;
-        }
-        Key::Key2 => {
-            model.draw_mode = DrawMode::Mouse;
+        Key::D => {
+            model.draw_mode = match model.draw_mode {
+                DrawMode::Circle => DrawMode::Mouse,
+                DrawMode::Mouse => DrawMode::Circle,
+            };
         }
         Key::Space => {
             model.noise_seed = (random_f32() * 10000.0).floor() as u32;
