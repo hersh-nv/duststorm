@@ -46,6 +46,7 @@ impl std::ops::Mul<f32> for Pos {
 struct Agent {
     pos: Pos,       // (x,y) position
     step_size: f32, // ??
+    z_offset: f32,
 }
 
 impl Agent {
@@ -54,13 +55,14 @@ impl Agent {
         let angle = noise.get([
             self.pos.x as f64 / noise_scale,
             self.pos.y as f64 / noise_scale,
+            self.z_offset as f64,
         ]) as f32;
-        let angle = angle * 10.0 * PI;
+        let angle = angle * 2.0 * PI;
         self.pos.x += angle.cos() * self.step_size;
         self.pos.y += angle.sin() * self.step_size;
         // then take a proportional step in the target direction
         let dxy = target - self.pos;
-        let dxy = dxy * 0.05; // acceleration factor, tweak for best results
+        let dxy = dxy * 0.02; // acceleration factor, tweak for best results
         self.pos.x += dxy.x;
         self.pos.y += dxy.y;
     }
@@ -95,7 +97,8 @@ impl Model {
                 let theta = random_range(0f32, 2.0 * PI);
                 Agent {
                     pos: Pos::new(r * theta.cos(), r * theta.sin()),
-                    step_size: 10f32,
+                    step_size: 5f32,
+                    z_offset: random_range(0f32, 1f32),
                 }
             })
             .collect();
@@ -145,13 +148,23 @@ fn update(app: &App, model: &mut Model, _update: Update) {
 
 fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
-    draw.background().color(BLACK);
-    model.agents_pos().iter().for_each(|a_pos| {
-        draw.ellipse()
-            .x_y(a_pos.x, a_pos.y)
-            .radius(1.0)
-            .color(WHITE);
-    });
+    if frame.nth() == 0 {
+        draw.background().color(BLACK);
+    } else {
+        // draw.background().color(BLACK);
+        draw.rect()
+            .wh(app.window_rect().wh())
+            .rgba(0.0, 0.0, 0.0, 0.05);
+    }
+    // draw agents
+    if frame.nth() % 2 == 0 {
+        model.agents_pos().iter().for_each(|a_pos| {
+            draw.ellipse()
+                .x_y(a_pos.x, a_pos.y)
+                .radius(1.0)
+                .color(WHITE);
+        });
+    }
     //draw target
     draw.ellipse()
         .x_y(model.target.x, model.target.y)
