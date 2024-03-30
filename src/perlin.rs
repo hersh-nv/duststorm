@@ -62,7 +62,7 @@ impl Agent {
         self.pos.y += angle.sin() * self.step_size;
         // then take a proportional step in the target direction
         let dxy = target - self.pos;
-        let dxy = dxy * 0.02; // acceleration factor, tweak for best results
+        let dxy = dxy * 0.025; // acceleration factor, tweak for best results
         self.pos.x += dxy.x;
         self.pos.y += dxy.y;
     }
@@ -81,12 +81,13 @@ struct Model {
     win: Rect,
     pub target: Pos,
     pub draw_mode: DrawMode,
+    pub draw_target: bool,
 }
 
 impl Model {
     pub fn new(win: Rect) -> Self {
         let agent_count = 100;
-        let noise_scale = 250.0;
+        let noise_scale = 300.0;
         let noise_seed = random::<u32>();
         let perlin = Perlin::new().set_seed(noise_seed);
         let agents = (0..agent_count)
@@ -97,13 +98,14 @@ impl Model {
                 let theta = random_range(0f32, 2.0 * PI);
                 Agent {
                     pos: Pos::new(r * theta.cos(), r * theta.sin()),
-                    step_size: 5f32,
+                    step_size: 6f32,
                     z_offset: random_range(0f32, 1f32),
                 }
             })
             .collect();
         let target = Pos::new(0f32, 0f32);
         let draw_mode = DrawMode::Circle;
+        let draw_target = false;
 
         Model {
             perlin,
@@ -113,6 +115,7 @@ impl Model {
             win,
             target,
             draw_mode,
+            draw_target,
         }
     }
 
@@ -133,7 +136,7 @@ fn model(app: &App) -> Model {
 fn update(app: &App, model: &mut Model, _update: Update) {
     match model.draw_mode {
         DrawMode::Circle => {
-            let theta = app.time * PI * 0.5;
+            let theta = app.time * PI * 1.0;
             let r = 500f32;
             model.target = Pos::new(r * theta.cos(), r * theta.sin());
         }
@@ -157,19 +160,21 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .rgba(0.0, 0.0, 0.0, 0.05);
     }
     // draw agents
-    if frame.nth() % 2 == 0 {
+    if frame.nth() % 1 == 0 {
         model.agents_pos().iter().for_each(|a_pos| {
             draw.ellipse()
                 .x_y(a_pos.x, a_pos.y)
-                .radius(1.0)
+                .radius(0.8)
                 .color(WHITE);
         });
     }
     //draw target
-    draw.ellipse()
-        .x_y(model.target.x, model.target.y)
-        .radius(1.0)
-        .color(RED);
+    if model.draw_target {
+        draw.ellipse()
+            .x_y(model.target.x, model.target.y)
+            .radius(1.0)
+            .color(RED);
+    }
     draw.to_frame(app, &frame).unwrap();
 }
 
@@ -179,6 +184,12 @@ fn key_released(app: &App, model: &mut Model, key: Key) {
             model.draw_mode = match model.draw_mode {
                 DrawMode::Circle => DrawMode::Mouse,
                 DrawMode::Mouse => DrawMode::Circle,
+            };
+        }
+        Key::T => {
+            model.draw_target = match model.draw_target {
+                false => true,
+                true => false,
             };
         }
         Key::Space => {
