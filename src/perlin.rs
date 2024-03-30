@@ -130,8 +130,8 @@ fn model(app: &App) -> Model {
 fn update(app: &App, model: &mut Model, _update: Update) {
     match model.draw_mode {
         DrawMode::Circle => {
-            let theta = app.time * PI * 1.3;
-            let r = 100f32;
+            let theta = app.time * PI * 0.5;
+            let r = 500f32;
             model.target = Pos::new(r * theta.cos(), r * theta.sin());
         }
         DrawMode::Mouse => model.target = Pos::new(app.mouse.x, app.mouse.y),
