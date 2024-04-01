@@ -1,10 +1,9 @@
 // Agents that move following a target, while being pushed around by Perlin noise.
 
-use std::process::Output;
+use std::collections::VecDeque;
 
 use nannou::noise::{NoiseFn, Perlin, Seedable};
-use nannou::text::rt::Point;
-use nannou::{frame, prelude::*};
+use nannou::prelude::*;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -85,11 +84,12 @@ struct Model {
     pub target: Pos,
     pub draw_mode: DrawMode,
     pub draw_target: bool,
+    pub draw_buffer: VecDeque<Draw>,
 }
 
 impl Model {
     pub fn new(win: Rect) -> Self {
-        let agent_count = 100;
+        let agent_count = 10;
         let noise_scale = 300.0;
         let noise_seed = random::<u32>();
         let perlin = Perlin::new().set_seed(noise_seed);
@@ -103,6 +103,7 @@ impl Model {
         let target = Pos::new(0f32, 0f32);
         let draw_mode = DrawMode::Circle;
         let draw_target = false;
+        let draw_buffer = VecDeque::new();
 
         Model {
             perlin,
@@ -113,6 +114,7 @@ impl Model {
             target,
             draw_mode,
             draw_target,
+            draw_buffer,
         }
     }
 
@@ -152,43 +154,54 @@ fn update(app: &App, model: &mut Model, _update: Update) {
         }
         DrawMode::Mouse => model.target = Pos::new(app.mouse.x, app.mouse.y),
     }
-
     model
         .agents
         .iter_mut()
-        .for_each(|a| a.update(model.perlin, model.target, model.noise_scale))
+        .for_each(|a| a.update(model.perlin, model.target, model.noise_scale));
+
+    draw_to_buffer(app, model);
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
-    let draw = app.draw();
-    if frame.nth() == 0 || app.keys.down.contains(&Key::R) {
-        draw.background().color(BLACK);
-    } else {
-        // draw.background().color(BLACK);
-        draw.rect()
-            .wh(app.window_rect().wh())
-            .rgba(0.0, 0.0, 0.0, 0.05);
-        // draw agents
-        if frame.nth() % 1 == 0 {
-            model.agents_pos().iter().for_each(|a_pos| {
-                draw.ellipse()
-                    .x_y(a_pos.x, a_pos.y)
-                    .radius(0.8)
-                    .color(WHITE);
-            });
-        }
-    }
-    //draw target
+fn draw_to_buffer(_app: &App, model: &mut Model) {
+    let draw = Draw::new();
+    // draw agents
+    model.agents_pos().iter().for_each(|a_pos| {
+        draw.ellipse()
+            .x_y(a_pos.x, a_pos.y)
+            .radius(0.8)
+            .color(WHITE);
+    });
+    // draw target
     if model.draw_target {
         draw.ellipse()
             .x_y(model.target.x, model.target.y)
             .radius(1.0)
             .color(RED);
     }
-    draw.to_frame(app, &frame).unwrap();
+
+    // keep a trail of last x draws in buffer
+    print!("Adding to buffer...");
+    if model.draw_buffer.len() >= 60 {
+        print!("full!");
+        let _ = model.draw_buffer.pop_back();
+    }
+    model.draw_buffer.push_front(draw);
+    print!("\n");
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn view(app: &App, model: &Model, frame: Frame) {
+    let draw = app.draw();
+    draw.background().color(BLACK);
+    draw.to_frame(&app, &frame).unwrap();
+    print!("Drawing buffers...");
+    model.draw_buffer.iter().for_each(|d: &Draw| {
+        print!("#");
+        d.to_frame(&app, &frame).unwrap();
+    });
+    print!("\n");
+}
+
+fn key_released(_app: &App, model: &mut Model, key: Key) {
     match key {
         Key::D => {
             model.draw_mode = match model.draw_mode {
