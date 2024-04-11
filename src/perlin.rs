@@ -62,7 +62,7 @@ impl Agent {
         self.pos.y += angle.sin() * self.step_size;
         // then take a proportional step in the target direction
         let dxy = target - self.pos;
-        let dxy = dxy * 0.025; // acceleration factor, tweak for best results
+        let dxy = dxy * 0.03; // acceleration factor, tweak for best results
         self.pos.x += dxy.x;
         self.pos.y += dxy.y;
 
@@ -90,7 +90,7 @@ struct Model {
 
 impl Model {
     pub fn new(win: Rect) -> Self {
-        let agent_count = 10;
+        let agent_count = 40;
         let noise_scale = 300.0;
         let noise_seed = random::<u32>();
         let perlin = Perlin::new().set_seed(noise_seed);
@@ -98,7 +98,7 @@ impl Model {
             .map(|_| Agent {
                 pos: Pos::new(0f32, 0f32),
                 step_size: 6f32,
-                z_offset: random_range(0f32, 1f32),
+                z_offset: random_range(0f32, 2.0f32),
             })
             .collect();
         let target = Pos::new(0f32, 0f32);
@@ -208,6 +208,7 @@ fn key_released(_app: &App, model: &mut Model, key: Key) {
             model.perlin = Perlin::new().set_seed(model.noise_seed);
         }
         Key::R => {
+            model.agents_history = VecDeque::new();
             model.reset_agents();
         }
         _other_key => {}
