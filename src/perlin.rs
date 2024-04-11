@@ -42,6 +42,7 @@ impl std::ops::Mul<f32> for Pos {
     }
 }
 
+#[derive(Clone)]
 struct Agent {
     pos: Pos,       // (x,y) position
     step_size: f32, // ??
@@ -84,7 +85,7 @@ struct Model {
     pub target: Pos,
     pub draw_mode: DrawMode,
     pub draw_target: bool,
-    pub draw_buffer: VecDeque<Draw>,
+    pub agents_history: VecDeque<Vec<Agent>>,
 }
 
 impl Model {
@@ -103,7 +104,7 @@ impl Model {
         let target = Pos::new(0f32, 0f32);
         let draw_mode = DrawMode::Circle;
         let draw_target = false;
-        let draw_buffer = VecDeque::new();
+        let agents_history = VecDeque::new();
 
         Model {
             perlin,
@@ -114,7 +115,7 @@ impl Model {
             target,
             draw_mode,
             draw_target,
-            draw_buffer,
+            agents_history,
         }
     }
 
@@ -131,7 +132,7 @@ impl Model {
             .collect();
     }
 
-    pub fn agents_pos(&self) -> Vec<Pos> {
+    pub fn _agents_pos(&self) -> Vec<Pos> {
         self.agents.iter().map(|agent| agent.pos).collect()
     }
 }
@@ -146,59 +147,46 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, model: &mut Model, _update: Update) {
-    match model.draw_mode {
+    // agents either target a target doing donuts around center of canvas, or
+    // the mouse cursor, depending on selected mode
+    model.target = match model.draw_mode {
         DrawMode::Circle => {
             let theta = app.time * PI * -1.0;
             let r = 300f32;
-            model.target = Pos::new(r * theta.cos(), r * theta.sin());
+            Pos::new(r * theta.cos(), r * theta.sin())
         }
-        DrawMode::Mouse => model.target = Pos::new(app.mouse.x, app.mouse.y),
-    }
+        DrawMode::Mouse => Pos::new(app.mouse.x, app.mouse.y),
+    };
     model
         .agents
         .iter_mut()
         .for_each(|a| a.update(model.perlin, model.target, model.noise_scale));
 
-    draw_to_buffer(app, model);
+    if model.agents_history.len() >= 30 {
+        let _ = model.agents_history.pop_back();
+    }
+    model.agents_history.push_front(model.agents.clone());
 }
 
-fn draw_to_buffer(_app: &App, model: &mut Model) {
-    let draw = Draw::new();
-    // draw agents
-    model.agents_pos().iter().for_each(|a_pos| {
-        draw.ellipse()
-            .x_y(a_pos.x, a_pos.y)
-            .radius(0.8)
-            .color(WHITE);
+fn view(app: &App, model: &Model, frame: Frame) {
+    let draw = app.draw();
+    draw.background().color(BLACK);
+    // draw all buffered sets of agents
+    model.agents_history.iter().for_each(|agents| {
+        agents.iter().for_each(|agent| {
+            draw.ellipse()
+                .x_y(agent.pos.x, agent.pos.y)
+                .radius(0.8)
+                .color(WHITE);
+        })
     });
-    // draw target
     if model.draw_target {
         draw.ellipse()
             .x_y(model.target.x, model.target.y)
             .radius(1.0)
             .color(RED);
     }
-
-    // keep a trail of last x draws in buffer
-    print!("Adding to buffer...");
-    if model.draw_buffer.len() >= 60 {
-        print!("full!");
-        let _ = model.draw_buffer.pop_back();
-    }
-    model.draw_buffer.push_front(draw);
-    print!("\n");
-}
-
-fn view(app: &App, model: &Model, frame: Frame) {
-    let draw = app.draw();
-    draw.background().color(BLACK);
     draw.to_frame(&app, &frame).unwrap();
-    print!("Drawing buffers...");
-    model.draw_buffer.iter().for_each(|d: &Draw| {
-        print!("#");
-        d.to_frame(&app, &frame).unwrap();
-    });
-    print!("\n");
 }
 
 fn key_released(_app: &App, model: &mut Model, key: Key) {
