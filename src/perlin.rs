@@ -42,6 +42,13 @@ impl std::ops::Mul<f32> for Pos {
     }
 }
 
+impl std::ops::Div<f32> for Pos {
+    type Output = Pos;
+    fn div(self, rhs: f32) -> Self::Output {
+        Pos::new(self.x / rhs, self.y / rhs)
+    }
+}
+
 #[derive(Clone)]
 struct Agent {
     pos: Pos,       // (x,y) position
@@ -74,6 +81,7 @@ impl Agent {
 enum DrawMode {
     Circle,
     FigureEight,
+    Average,
     Mouse,
 }
 
@@ -148,20 +156,44 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, model: &mut Model, _update: Update) {
-    // agents either target a target doing donuts around center of canvas, or
-    // the mouse cursor, depending on selected mode
+    // agents target a point on the canvas that updates according to the
+    // selected draw mode:
     model.target = match model.draw_mode {
         DrawMode::Circle => {
+            // tracks a circle moving clockwise around the canvas center
             let theta = app.time * PI * -1.0;
             let r = 300f32;
             Pos::new(r * theta.cos(), r * theta.sin())
         }
         DrawMode::FigureEight => {
+            // tracks a vertical figure eight, twice as tall as wide
             let theta = app.time * PI * -1.0;
             let r = 300f32;
             Pos::new(r / 2.0 * (theta * 2.0 + PI / 2.0).cos(), r * theta.sin())
         }
-        DrawMode::Mouse => Pos::new(app.mouse.x, app.mouse.y),
+        DrawMode::Average => {
+            // moves to the average of all the current agent points, including
+            // the agent trails.
+            // NB not protected against leaving canvas bounds
+            model
+                .agents_history
+                .iter()
+                .map(|agents| {
+                    agents
+                        .iter()
+                        .map(|a| a.pos)
+                        .reduce(|acc, pos| acc + pos)
+                        .unwrap()
+                        / agents.len() as f32
+                })
+                .reduce(|acc, pos| acc + pos)
+                .unwrap()
+                / model.agents_history.len() as f32
+        }
+        DrawMode::Mouse => {
+            // the current mouse position
+            Pos::new(app.mouse.x, app.mouse.y)
+        }
     };
     model
         .agents
@@ -200,7 +232,8 @@ fn key_released(_app: &App, model: &mut Model, key: Key) {
         Key::D => {
             model.draw_mode = match model.draw_mode {
                 DrawMode::Circle => DrawMode::FigureEight,
-                DrawMode::FigureEight => DrawMode::Mouse,
+                DrawMode::FigureEight => DrawMode::Average,
+                DrawMode::Average => DrawMode::Mouse,
                 DrawMode::Mouse => DrawMode::Circle,
             };
         }
