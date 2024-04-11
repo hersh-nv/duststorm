@@ -67,12 +67,13 @@ impl Agent {
         self.pos.y += dxy.y;
 
         // lastly - push z offset a bit so we're constantly sliding up the x axis of the noise space
-        self.z_offset += 0.01;
+        self.z_offset += 0.02;
     }
 }
 
 enum DrawMode {
     Circle,
+    FigureEight,
     Mouse,
 }
 
@@ -91,14 +92,14 @@ struct Model {
 impl Model {
     pub fn new(win: Rect) -> Self {
         let agent_count = 40;
-        let noise_scale = 300.0;
+        let noise_scale = 400.0;
         let noise_seed = random::<u32>();
         let perlin = Perlin::new().set_seed(noise_seed);
         let agents = (0..agent_count)
             .map(|_| Agent {
                 pos: Pos::new(0f32, 0f32),
                 step_size: 6f32,
-                z_offset: random_range(0f32, 2.0f32),
+                z_offset: random_range(0f32, 4.0f32),
             })
             .collect();
         let target = Pos::new(0f32, 0f32);
@@ -155,6 +156,11 @@ fn update(app: &App, model: &mut Model, _update: Update) {
             let r = 300f32;
             Pos::new(r * theta.cos(), r * theta.sin())
         }
+        DrawMode::FigureEight => {
+            let theta = app.time * PI * -1.0;
+            let r = 300f32;
+            Pos::new(r / 2.0 * (theta * 2.0 + PI / 2.0).cos(), r * theta.sin())
+        }
         DrawMode::Mouse => Pos::new(app.mouse.x, app.mouse.y),
     };
     model
@@ -193,7 +199,8 @@ fn key_released(_app: &App, model: &mut Model, key: Key) {
     match key {
         Key::D => {
             model.draw_mode = match model.draw_mode {
-                DrawMode::Circle => DrawMode::Mouse,
+                DrawMode::Circle => DrawMode::FigureEight,
+                DrawMode::FigureEight => DrawMode::Mouse,
                 DrawMode::Mouse => DrawMode::Circle,
             };
         }
