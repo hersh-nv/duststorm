@@ -19,6 +19,10 @@ impl Pos {
     pub fn new(x: f32, y: f32) -> Self {
         Pos { x, y }
     }
+
+    pub fn radius(&self) -> f32 {
+        (self.x * self.x + self.y * self.y).sqrt()
+    }
 }
 
 impl std::ops::Sub<Pos> for Pos {
@@ -174,8 +178,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
         DrawMode::Average => {
             // moves to the average of all the current agent points, including
             // the agent trails.
-            // NB not protected against leaving canvas bounds
-            model
+            let mut target = model
                 .agents_history
                 .iter()
                 .map(|agents| {
@@ -183,12 +186,16 @@ fn update(app: &App, model: &mut Model, _update: Update) {
                         .iter()
                         .map(|a| a.pos)
                         .reduce(|acc, pos| acc + pos)
-                        .unwrap()
+                        .unwrap_or(Pos::new(0.0, 0.0))
                         / agents.len() as f32
                 })
                 .reduce(|acc, pos| acc + pos)
-                .unwrap()
-                / model.agents_history.len() as f32
+                .unwrap_or(Pos::new(0.0, 0.0))
+                / model.agents_history.len() as f32;
+            if target.radius() > model.win.wh().min_element() / 2.0 {
+                target = model.target * -1.0;
+            }
+            target
         }
         DrawMode::Mouse => {
             // the current mouse position
