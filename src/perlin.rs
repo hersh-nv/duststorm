@@ -169,7 +169,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
             // tracks a vertical figure eight, twice as tall as wide
             let theta = app.time * PI * -1.0;
             let r = 300f32;
-            Pos::new(r / 2.0 * (theta * 2.0 + PI / 2.0).cos(), r * theta.sin())
+            Pos::new(r / 2.0 * -(theta * 2.0).sin(), r * theta.sin())
         }
         DrawMode::Average => {
             // moves to the average of all the current agent points, including
