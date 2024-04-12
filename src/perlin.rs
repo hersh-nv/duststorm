@@ -58,6 +58,7 @@ struct Agent {
     pos: Pos,       // (x,y) position
     step_size: f32, // ??
     z_offset: f32,
+    z: f32,
 }
 
 impl Agent {
@@ -66,7 +67,7 @@ impl Agent {
         let angle = noise.get([
             self.pos.x as f64 / noise_scale,
             self.pos.y as f64 / noise_scale,
-            self.z_offset as f64,
+            (self.z + self.z_offset) as f64,
         ]) as f32;
         let angle = angle * 2.0 * PI;
         self.pos.x += angle.cos() * self.step_size;
@@ -78,7 +79,7 @@ impl Agent {
         self.pos.y += dxy.y;
 
         // lastly - push z offset a bit so we're constantly sliding up the x axis of the noise space
-        self.z_offset += 0.02;
+        self.z += 0.02;
     }
 }
 
@@ -112,6 +113,7 @@ impl Model {
                 pos: Pos::new(0f32, 0f32),
                 step_size: 6f32,
                 z_offset: random_range(0f32, 4.0f32),
+                z: 0.0,
             })
             .collect();
         let target = Pos::new(0f32, 0f32);
@@ -140,6 +142,7 @@ impl Model {
                     pos: Pos::new(0f32, 0f32),
                     step_size: 10f32,
                     z_offset: random_range(0f32, 1f32),
+                    z: 0.0,
                 }
             })
             .collect();
