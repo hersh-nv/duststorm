@@ -138,7 +138,7 @@ impl Model {
                 // random r and theta around centre
                 Agent {
                     pos: Pos::new(0f32, 0f32),
-                    step_size: 6f32,
+                    step_size: 10f32,
                     z_offset: random_range(0f32, 1f32),
                 }
             })
@@ -152,6 +152,7 @@ impl Model {
 
 fn model(app: &App) -> Model {
     app.new_window()
+        .size(1000, 1000)
         .view(view)
         .key_released(key_released)
         .build()
@@ -192,7 +193,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
                 .reduce(|acc, pos| acc + pos)
                 .unwrap_or(Pos::new(0.0, 0.0))
                 / model.agents_history.len() as f32;
-            target * 0.8
+            target * 0.6
         }
         DrawMode::Mouse => {
             // the current mouse position
@@ -205,9 +206,9 @@ fn update(app: &App, model: &mut Model, _update: Update) {
         .for_each(|a| a.update(model.perlin, model.target, model.noise_scale));
 
     if model.agents_history.len() >= 30 {
-        let _ = model.agents_history.pop_back();
+        let _ = model.agents_history.pop_front();
     }
-    model.agents_history.push_front(model.agents.clone());
+    model.agents_history.push_back(model.agents.clone());
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
