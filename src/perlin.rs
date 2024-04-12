@@ -176,9 +176,9 @@ fn update(app: &App, model: &mut Model, _update: Update) {
             Pos::new(r / 2.0 * -(theta * 2.0).sin(), r * theta.sin())
         }
         DrawMode::Average => {
-            // moves to the average of all the current agent points, including
-            // the agent trails.
-            let mut target = model
+            // tracks the average of all the current agent points (including the
+            // agent trails), with an attraction factor to canvas center
+            let target = model
                 .agents_history
                 .iter()
                 .map(|agents| {
@@ -192,10 +192,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
                 .reduce(|acc, pos| acc + pos)
                 .unwrap_or(Pos::new(0.0, 0.0))
                 / model.agents_history.len() as f32;
-            if target.radius() > model.win.wh().min_element() / 2.0 {
-                target = model.target * -1.0;
-            }
-            target
+            target * 0.8
         }
         DrawMode::Mouse => {
             // the current mouse position
