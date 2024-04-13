@@ -148,7 +148,7 @@ impl Model {
                 // random r and theta around centre
                 Agent {
                     pos: Pos::new(0f32, 0f32),
-                    step_size: 10f32,
+                    step_size: 6f32,
                     z_offset: random_range(0f32, 4f32),
                     z: 0.0,
                 }
