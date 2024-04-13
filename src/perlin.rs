@@ -83,7 +83,7 @@ impl Agent {
     }
 }
 
-enum DrawMode {
+enum TargetMode {
     Circle,
     FigureEight,
     Average,
@@ -102,7 +102,7 @@ struct Model {
     pub agents: Vec<Agent>,
     win: Rect,
     pub target: Pos,
-    pub draw_mode: DrawMode,
+    pub target_mode: TargetMode,
     pub color_mode: ColorMode,
     pub draw_target: bool,
     pub agents_history: VecDeque<Vec<Agent>>,
@@ -123,7 +123,7 @@ impl Model {
             })
             .collect();
         let target = Pos::new(0f32, 0f32);
-        let draw_mode = DrawMode::Circle;
+        let target_mode = TargetMode::Circle;
         let color_mode = ColorMode::White;
         let draw_target = false;
         let agents_history = VecDeque::new();
@@ -135,7 +135,7 @@ impl Model {
             agents,
             win,
             target,
-            draw_mode,
+            target_mode,
             color_mode,
             draw_target,
             agents_history,
@@ -174,20 +174,20 @@ fn model(app: &App) -> Model {
 fn update(app: &App, model: &mut Model, _update: Update) {
     // agents target a point on the canvas that updates according to the
     // selected draw mode:
-    model.target = match model.draw_mode {
-        DrawMode::Circle => {
+    model.target = match model.target_mode {
+        TargetMode::Circle => {
             // tracks a circle moving clockwise around the canvas center
             let theta = app.time * PI * -1.0;
             let r = 300f32;
             Pos::new(r * theta.cos(), r * theta.sin())
         }
-        DrawMode::FigureEight => {
+        TargetMode::FigureEight => {
             // tracks a vertical figure eight, twice as tall as wide
             let theta = app.time * PI * -1.0;
             let r = 300f32;
             Pos::new(r / 2.0 * -(theta * 2.0).sin(), r * theta.sin())
         }
-        DrawMode::Average => {
+        TargetMode::Average => {
             // tracks the average of all the current agent points (including the
             // agent trails), with an attraction factor to canvas center
             let target = model
@@ -206,7 +206,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
                 / model.agents_history.len() as f32;
             target * 0.6
         }
-        DrawMode::Mouse => {
+        TargetMode::Mouse => {
             // the current mouse position
             Pos::new(app.mouse.x, app.mouse.y)
         }
@@ -254,11 +254,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
 fn key_released(_app: &App, model: &mut Model, key: Key) {
     match key {
         Key::D => {
-            model.draw_mode = match model.draw_mode {
-                DrawMode::Circle => DrawMode::FigureEight,
-                DrawMode::FigureEight => DrawMode::Average,
-                DrawMode::Average => DrawMode::Mouse,
-                DrawMode::Mouse => DrawMode::Circle,
+            model.target_mode = match model.target_mode {
+                TargetMode::Circle => TargetMode::FigureEight,
+                TargetMode::FigureEight => TargetMode::Average,
+                TargetMode::Average => TargetMode::Mouse,
+                TargetMode::Mouse => TargetMode::Circle,
             };
         }
         Key::C => {
