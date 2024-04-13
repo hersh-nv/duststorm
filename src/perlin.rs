@@ -90,6 +90,11 @@ enum DrawMode {
     Mouse,
 }
 
+enum ColorMode {
+    White,
+    RedBlue,
+}
+
 struct Model {
     perlin: Perlin,
     noise_seed: u32,
@@ -98,6 +103,7 @@ struct Model {
     win: Rect,
     pub target: Pos,
     pub draw_mode: DrawMode,
+    pub color_mode: ColorMode,
     pub draw_target: bool,
     pub agents_history: VecDeque<Vec<Agent>>,
 }
@@ -118,6 +124,7 @@ impl Model {
             .collect();
         let target = Pos::new(0f32, 0f32);
         let draw_mode = DrawMode::Circle;
+        let color_mode = ColorMode::White;
         let draw_target = false;
         let agents_history = VecDeque::new();
 
@@ -129,6 +136,7 @@ impl Model {
             win,
             target,
             draw_mode,
+            color_mode,
             draw_target,
             agents_history,
         }
@@ -141,7 +149,7 @@ impl Model {
                 Agent {
                     pos: Pos::new(0f32, 0f32),
                     step_size: 10f32,
-                    z_offset: random_range(0f32, 1f32),
+                    z_offset: random_range(0f32, 4f32),
                     z: 0.0,
                 }
             })
@@ -220,10 +228,18 @@ fn view(app: &App, model: &Model, frame: Frame) {
     // draw all buffered sets of agents
     model.agents_history.iter().for_each(|agents| {
         agents.iter().for_each(|agent| {
+            let color = match model.color_mode {
+                ColorMode::White => WHITE,
+                ColorMode::RedBlue => rgb(
+                    15 + (agent.z_offset * 60.0) as u8,
+                    0,
+                    255 - (agent.z_offset * 60.0) as u8,
+                ),
+            };
             draw.ellipse()
                 .x_y(agent.pos.x, agent.pos.y)
                 .radius(0.8)
-                .color(WHITE);
+                .color(color);
         })
     });
     if model.draw_target {
@@ -243,6 +259,12 @@ fn key_released(_app: &App, model: &mut Model, key: Key) {
                 DrawMode::FigureEight => DrawMode::Average,
                 DrawMode::Average => DrawMode::Mouse,
                 DrawMode::Mouse => DrawMode::Circle,
+            };
+        }
+        Key::C => {
+            model.color_mode = match model.color_mode {
+                ColorMode::White => ColorMode::RedBlue,
+                ColorMode::RedBlue => ColorMode::White,
             };
         }
         Key::T => {
