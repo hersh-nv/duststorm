@@ -23,6 +23,13 @@ impl Pos {
     pub fn radius(&self) -> f32 {
         (self.x * self.x + self.y * self.y).sqrt()
     }
+
+    pub fn pow(&self, rhs: f32) -> Pos {
+        Pos::new(
+            self.x.signum() * self.x.abs().pow(rhs),
+            self.y.signum() * self.y.abs().pow(rhs),
+        )
+    }
 }
 
 impl std::ops::Sub<Pos> for Pos {
@@ -177,22 +184,23 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     model.target = match model.target_mode {
         TargetMode::Circle => {
             // tracks a circle moving clockwise around the canvas center
-            let theta = app.time * PI * -1.0;
+            let theta = app.time * PI * -0.2;
             let r = 300f32;
             Pos::new(r * theta.cos(), r * theta.sin())
         }
         TargetMode::FigureEight => {
             // tracks a vertical figure eight, twice as tall as wide
-            let theta = app.time * PI * -1.0;
+            let theta = app.time * PI * -0.2;
             let r = 300f32;
             Pos::new(r / 2.0 * -(theta * 2.0).sin(), r * theta.sin())
         }
         TargetMode::Average => {
-            // tracks the average of all the current agent points (including the
-            // agent trails), with an attraction factor to canvas center
+            // tracks the average of the newest agent set, with an attraction
+            // factor to canvas center
             let target = model
                 .agents_history
                 .iter()
+                .last()
                 .map(|agents| {
                     agents
                         .iter()
@@ -201,10 +209,8 @@ fn update(app: &App, model: &mut Model, _update: Update) {
                         .unwrap_or(Pos::new(0.0, 0.0))
                         / agents.len() as f32
                 })
-                .reduce(|acc, pos| acc + pos)
-                .unwrap_or(Pos::new(0.0, 0.0))
-                / model.agents_history.len() as f32;
-            target * 0.6
+                .unwrap_or(Pos::new(0.0, 0.0));
+            target.pow(0.95)
         }
         TargetMode::Mouse => {
             // the current mouse position
