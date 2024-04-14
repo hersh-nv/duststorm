@@ -110,7 +110,7 @@ struct Model {
 
 impl Model {
     pub fn new(win: Rect) -> Self {
-        let agent_count = 40;
+        let agent_count = 100;
         let noise_scale = 400.0;
         let noise_seed = random::<u32>();
         let perlin = Perlin::new().set_seed(noise_seed);
@@ -216,7 +216,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
         .iter_mut()
         .for_each(|a| a.update(model.perlin, model.target, model.noise_scale));
 
-    if model.agents_history.len() >= 30 {
+    if model.agents_history.len() >= 300 {
         let _ = model.agents_history.pop_front();
     }
     model.agents_history.push_back(model.agents.clone());
@@ -224,9 +224,20 @@ fn update(app: &App, model: &mut Model, _update: Update) {
 
 fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
-    draw.background().color(BLACK);
-    // draw all buffered sets of agents
-    model.agents_history.iter().for_each(|agents| {
+    if app.keys.down.contains(&Key::R) {
+        draw.background().color(BLACK);
+    }
+    // 'erase' the oldest agent set by overwriting in black
+    model.agents_history.iter().nth(0).map(|agents| {
+        agents.iter().for_each(|agent| {
+            draw.ellipse()
+                .x_y(agent.pos.x, agent.pos.y)
+                .radius(0.8)
+                .color(BLACK);
+        })
+    });
+    // draw the newest agent set
+    model.agents_history.iter().last().map(|agents| {
         agents.iter().for_each(|agent| {
             let color = match model.color_mode {
                 ColorMode::White => WHITE,
