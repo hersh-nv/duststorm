@@ -8,13 +8,16 @@
 use nannou::prelude::*;
 use voronoice::*;
 
+pub mod pos;
+use pos::Pos;
+
 fn main() {
     nannou::app(model).update(update).run();
 }
 
 #[derive(Clone)]
 struct Agent {
-    pos: Point,
+    pos: Pos,
     angle: f64,
     step_size: f64,
 }
@@ -42,13 +45,7 @@ impl Agent {
         }
     }
 
-    fn update2(&mut self, win: Rect) {
-        // position random walk
-        // step the position
-        self.pos.x += 2.5 * random_range(-1.0, 1.0);
-        self.pos.y += 2.5 * random_range(-1.0, 1.0);
-        // wrap around the position // todo
-    }
+    fn update2(&mut self, win: Rect, agent_pos_vec: Vec<Point>) {}
 }
 
 enum UpdateMode {
@@ -66,7 +63,7 @@ struct Model {
 
 impl Model {
     fn new(win: Rect) -> Self {
-        let agent_count = 200;
+        let agent_count = 50;
         let agents: Vec<Agent> = Model::build_agents(agent_count, win);
         let voronoi =
             Model::build_voronoi(agents.clone().into_iter().map(|a| a.pos).collect(), win);
@@ -84,10 +81,10 @@ impl Model {
     fn build_agents(agent_count: i32, win: Rect) -> Vec<Agent> {
         (0..agent_count)
             .map(|_| Agent {
-                pos: Point {
-                    x: random_range(win.left().into(), win.right().into()),
-                    y: random_range(win.bottom().into(), win.top().into()),
-                },
+                pos: Pos::new(
+                    random_range(win.left().into(), win.right().into()),
+                    random_range(win.bottom().into(), win.top().into()),
+                ),
                 angle: random_range(-PI as f64, PI as f64),
                 step_size: 0.3,
             })
