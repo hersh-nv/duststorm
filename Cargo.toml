@@ -8,6 +8,7 @@ default-run = "perlin"
 
 [dependencies]
 nannou = "0.19.0"
+palette = "0.7.5"
 voronoice = "0.2.0"
 
 [[bin]]

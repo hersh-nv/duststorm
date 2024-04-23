@@ -4,6 +4,7 @@ use std::collections::VecDeque;
 
 use nannou::noise::{NoiseFn, Perlin, Seedable};
 use nannou::prelude::*;
+use palette::convert::FromColorUnclamped;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -74,7 +75,7 @@ impl Agent {
         let angle = noise.get([
             self.pos.x as f64 / noise_scale,
             self.pos.y as f64 / noise_scale,
-            (self.z + self.z_offset) as f64,
+            (self.z + self.z_offset * 4.0) as f64,
         ]) as f32;
         let angle = angle * 2.0 * PI;
         self.pos.x += angle.cos() * self.step_size;
@@ -100,6 +101,7 @@ enum TargetMode {
 enum ColorMode {
     White,
     RedBlue,
+    HueRotate,
 }
 
 struct Model {
@@ -125,7 +127,7 @@ impl Model {
             .map(|_| Agent {
                 pos: Pos::new(0f32, 0f32),
                 step_size: 6f32,
-                z_offset: random_range(0f32, 4.0f32),
+                z_offset: random_range(0f32, 1.0f32),
                 z: 0.0,
             })
             .collect();
@@ -156,7 +158,7 @@ impl Model {
                 Agent {
                     pos: Pos::new(0f32, 0f32),
                     step_size: 6f32,
-                    z_offset: random_range(0f32, 4f32),
+                    z_offset: random_range(0f32, 1f32),
                     z: 0.0,
                 }
             })
@@ -248,10 +250,21 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let color = match model.color_mode {
                 ColorMode::White => WHITE,
                 ColorMode::RedBlue => rgb(
-                    15 + (agent.z_offset * 60.0) as u8,
+                    15 + (agent.z_offset * 240.0) as u8,
                     0,
-                    255 - (agent.z_offset * 60.0) as u8,
+                    255 - (agent.z_offset * 240.0) as u8,
                 ),
+                ColorMode::HueRotate => {
+                    let (r, g, b) =
+                        palette::rgb::Rgb::from_color_unclamped(palette::Hsv::new_srgb(
+                            200.0 + agent.z_offset * 150.0,
+                            0.5 + agent.z_offset * 0.5,
+                            1.0,
+                        ))
+                        .into_format::<u8>()
+                        .into_components();
+                    rgb(r, g, b)
+                }
             };
             draw.ellipse()
                 .x_y(agent.pos.x, agent.pos.y)
@@ -281,7 +294,8 @@ fn key_released(_app: &App, model: &mut Model, key: Key) {
         Key::C => {
             model.color_mode = match model.color_mode {
                 ColorMode::White => ColorMode::RedBlue,
-                ColorMode::RedBlue => ColorMode::White,
+                ColorMode::RedBlue => ColorMode::HueRotate,
+                ColorMode::HueRotate => ColorMode::White,
             };
         }
         Key::T => {
