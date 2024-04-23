@@ -9,7 +9,7 @@ use nannou::prelude::*;
 use voronoice::*;
 
 fn main() {
-    nannou::app(model).update(update).simple_window(view).run();
+    nannou::app(model).update(update).run();
 }
 
 #[derive(Clone)]
@@ -42,7 +42,7 @@ impl Agent {
         }
     }
 
-    fn update2(&mut self) {
+    fn update2(&mut self, win: Rect) {
         // position random walk
         // step the position
         self.pos.x += 2.5 * random_range(-1.0, 1.0);
@@ -51,16 +51,38 @@ impl Agent {
     }
 }
 
+enum UpdateMode {
+    One,
+    Two,
+}
+
 struct Model {
+    agent_count: i32,
     agents: Vec<Agent>,
     voronoi: Voronoi,
     win: Rect,
+    update_mode: UpdateMode,
 }
 
 impl Model {
     fn new(win: Rect) -> Self {
         let agent_count = 200;
-        let agents: Vec<Agent> = (0..agent_count)
+        let agents: Vec<Agent> = Model::build_agents(agent_count, win);
+        let voronoi =
+            Model::build_voronoi(agents.clone().into_iter().map(|a| a.pos).collect(), win);
+        let update_mode = UpdateMode::One;
+
+        Model {
+            agent_count,
+            agents,
+            voronoi,
+            win,
+            update_mode,
+        }
+    }
+
+    fn build_agents(agent_count: i32, win: Rect) -> Vec<Agent> {
+        (0..agent_count)
             .map(|_| Agent {
                 pos: Point {
                     x: random_range(win.left().into(), win.right().into()),
@@ -69,16 +91,7 @@ impl Model {
                 angle: random_range(-PI as f64, PI as f64),
                 step_size: 0.3,
             })
-            .collect();
-
-        let voronoi =
-            Model::build_voronoi(agents.clone().into_iter().map(|a| a.pos).collect(), win);
-
-        Model {
-            agents,
-            voronoi,
-            win,
-        }
+            .collect()
     }
 
     fn get_sites(&self) -> Vec<&Point> {
@@ -102,6 +115,12 @@ impl Model {
 }
 
 fn model(app: &App) -> Model {
+    app.new_window()
+        .size(1000, 1000)
+        .view(view)
+        .key_released(key_released)
+        .build()
+        .unwrap();
     let win = app.window_rect();
     Model::new(win)
 }
@@ -111,7 +130,10 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     model
         .agents
         .iter_mut()
-        .for_each(|agent| agent.update1(model.win));
+        .for_each(|agent| match model.update_mode {
+            UpdateMode::One => agent.update1(model.win),
+            UpdateMode::Two => agent.update2(model.win),
+        });
     // redraw voronoi cells
     model.rebuild_voronoi();
 }
@@ -138,4 +160,17 @@ fn view(app: &App, model: &Model, frame: Frame) {
         draw.polyline().weight(1.0).points(cell2).color(WHITE);
     });
     draw.to_frame(app, &frame).unwrap();
+}
+
+fn key_released(_app: &App, model: &mut Model, key: Key) {
+    match key {
+        Key::T => {
+            model.update_mode = match model.update_mode {
+                UpdateMode::One => UpdateMode::Two,
+                UpdateMode::Two => UpdateMode::One,
+            }
+        }
+        Key::R => model.agents = Model::build_agents(model.agent_count, model.win),
+        _other_key => {}
+    }
 }
