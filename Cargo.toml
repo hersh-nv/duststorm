@@ -18,3 +18,7 @@ path = "src/voronoi.rs"
 [[bin]]
 name = "perlin"
 path = "src/perlin.rs"
+
+[[bin]]
+name = "perlin2"
+path = "src/perlin2.rs"
