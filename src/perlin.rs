@@ -46,6 +46,7 @@ impl Agent {
 enum TargetMode {
     Circle,
     FigureEight,
+    Noise,
     Average,
     Mouse,
 }
@@ -148,6 +149,16 @@ fn update(app: &App, model: &mut Model, _update: Update) {
             let r = 300f32;
             Pos::new(r / 2.0 * -(theta * 2.0).sin(), r * theta.sin())
         }
+        TargetMode::Noise => {
+            let noise = model.perlin.get([
+                model.target.x as f64 / model.noise_scale,
+                model.target.y as f64 / model.noise_scale,
+                app.time as f64,
+            ]) as f32;
+            let noise = noise * 2.0 * PI;
+            let target = model.target + Pos::new(noise.cos(), noise.sin()) * 30.0;
+            target.pow(0.99)
+        }
         TargetMode::Average => {
             // tracks the average of the newest agent set, with an attraction
             // factor to canvas center
@@ -209,7 +220,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 ColorMode::HueRotate => {
                     let (r, g, b) =
                         palette::rgb::Rgb::from_color_unclamped(palette::Hsv::new_srgb(
-                            200.0 + agent.z_offset * 150.0,
+                            50.0 + agent.z_offset * 300.0,
                             0.5 + agent.z_offset * 0.5,
                             1.0,
                         ))
@@ -220,7 +231,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             };
             draw.ellipse()
                 .x_y(agent.pos.x, agent.pos.y)
-                .radius(0.8)
+                .radius(0.5)
                 .color(color);
         })
     });
@@ -238,7 +249,8 @@ fn key_released(_app: &App, model: &mut Model, key: Key) {
         Key::D => {
             model.target_mode = match model.target_mode {
                 TargetMode::Circle => TargetMode::FigureEight,
-                TargetMode::FigureEight => TargetMode::Average,
+                TargetMode::FigureEight => TargetMode::Noise,
+                TargetMode::Noise => TargetMode::Average,
                 TargetMode::Average => TargetMode::Mouse,
                 TargetMode::Mouse => TargetMode::Circle,
             };
