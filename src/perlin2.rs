@@ -22,10 +22,10 @@ impl Agent {
     pub fn new(win: Rect) -> Agent {
         Agent {
             pos: Pos::new(
-                random_range(win.left(), win.right()),
-                random_range(win.bottom(), win.top()),
+                random_range(win.left() * 1.1, win.right() * 1.1),
+                random_range(win.bottom() * 1.1, win.top() * 1.1),
             ),
-            step_size: 1f32,
+            step_size: 2f32,
             ttl: random_range(2.0, 10.0),
         }
     }
@@ -38,7 +38,7 @@ impl Agent {
             let angle = noise.get([
                 self.pos.x as f64 / noise_scale,
                 self.pos.y as f64 / noise_scale,
-                time.since_start.as_secs_f64() / 40.0,
+                time.since_start.as_secs_f64() / 25.0,
             ]) as f32;
             let angle = angle * 2.0 * PI;
             self.pos.x += angle.cos() * self.step_size;
@@ -116,24 +116,25 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
     draw.rect()
         .wh(app.window_rect().wh())
-        .rgba(0.0, 0.0, 0.0, 0.02);
+        .hsva(0.0, 0.0, 0.0, 0.02);
     // draw the newest agent set
     model.agents.iter().for_each(|agent| {
         draw.ellipse()
             .x_y(agent.pos.x, agent.pos.y)
             .radius(0.5)
-            .color(WHITE);
+            .hsv(0.5 + agent.ttl / 20.0, 1.0, 1.0);
     });
     draw.to_frame(&app, &frame).unwrap();
 }
 
-fn key_released(_app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: Key) {
     match key {
         Key::Space => {
             model.noise_seed = (random_f32() * 10000.0).floor() as u32;
             model.perlin = Perlin::new().set_seed(model.noise_seed);
         }
         Key::R => {
+            model.win = app.window_rect();
             model.reset_agents();
         }
         _other_key => {}
