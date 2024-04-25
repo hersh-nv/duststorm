@@ -18,8 +18,8 @@ fn main() {
 #[derive(Clone)]
 struct Agent {
     pos: Pos,
-    angle: f64,
-    step_size: f64,
+    angle: f32,
+    step_size: f32,
 }
 
 impl Agent {
@@ -32,10 +32,10 @@ impl Agent {
         self.pos.y += self.angle.sin() * self.step_size;
         // turn around if approaching the edges
         if self.pos.x + self.angle.cos() * self.step_size * 20.0 < win.left().into() {
-            self.angle = PI as f64 - self.angle;
+            self.angle = PI - self.angle;
         }
         if self.pos.x + self.angle.cos() * self.step_size * 20.0 > win.right().into() {
-            self.angle = PI as f64 - self.angle;
+            self.angle = PI - self.angle;
         }
         if self.pos.y + self.angle.sin() * self.step_size * 20.0 < win.bottom().into() {
             self.angle = -self.angle;
@@ -45,7 +45,7 @@ impl Agent {
         }
     }
 
-    fn update2(&mut self, win: Rect, agent_pos_vec: Vec<Point>) {}
+    fn update2(&mut self, win: Rect, agent_pos_vec: &Vec<Pos>) {}
 }
 
 enum UpdateMode {
@@ -65,8 +65,17 @@ impl Model {
     fn new(win: Rect) -> Self {
         let agent_count = 50;
         let agents: Vec<Agent> = Model::build_agents(agent_count, win);
-        let voronoi =
-            Model::build_voronoi(agents.clone().into_iter().map(|a| a.pos).collect(), win);
+        let voronoi = Model::build_voronoi(
+            agents
+                .clone()
+                .into_iter()
+                .map(|a| Point {
+                    x: a.pos.x as f64,
+                    y: a.pos.y as f64,
+                })
+                .collect(),
+            win,
+        );
         let update_mode = UpdateMode::One;
 
         Model {
@@ -85,14 +94,14 @@ impl Model {
                     random_range(win.left().into(), win.right().into()),
                     random_range(win.bottom().into(), win.top().into()),
                 ),
-                angle: random_range(-PI as f64, PI as f64),
+                angle: random_range(-PI, PI),
                 step_size: 0.3,
             })
             .collect()
     }
 
-    fn get_sites(&self) -> Vec<&Point> {
-        self.agents.iter().map(|a| &a.pos).collect()
+    fn get_sites(&self) -> Vec<Pos> {
+        self.agents.iter().map(|a| a.pos).collect()
     }
 
     fn build_voronoi(sites: Vec<Point>, win: Rect) -> Voronoi {
@@ -105,7 +114,14 @@ impl Model {
 
     fn rebuild_voronoi(&mut self) {
         self.voronoi = Model::build_voronoi(
-            self.agents.clone().into_iter().map(|a| a.pos).collect(),
+            self.agents
+                .clone()
+                .into_iter()
+                .map(|a| Point {
+                    x: a.pos.x as f64,
+                    y: a.pos.y as f64,
+                })
+                .collect(),
             self.win,
         );
     }
@@ -124,12 +140,13 @@ fn model(app: &App) -> Model {
 
 fn update(_app: &App, model: &mut Model, _update: Update) {
     // update agents
+    let sites = model.get_sites();
     model
         .agents
         .iter_mut()
         .for_each(|agent| match model.update_mode {
             UpdateMode::One => agent.update1(model.win),
-            UpdateMode::Two => agent.update2(model.win),
+            UpdateMode::Two => agent.update2(model.win, &sites),
         });
     // redraw voronoi cells
     model.rebuild_voronoi();
