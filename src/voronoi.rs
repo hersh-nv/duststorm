@@ -55,8 +55,8 @@ impl Agent {
             if dxy.x.abs() < std::f32::EPSILON && dxy.y.abs() < std::f32::EPSILON {
                 continue;
             }
-            let force = dxy.magnitude().pow(-2.0);
-            let scalar = 10.0;
+            let force = dxy.magnitude().pow(-3.0);
+            let scalar = 1000.0;
             next_pos = next_pos - dxy * force * scalar;
         }
 
@@ -93,7 +93,7 @@ struct Model {
 
 impl Model {
     fn new(win: Rect) -> Self {
-        let agent_count = 40;
+        let agent_count = 100;
         let agents: Vec<Agent> = Model::build_agents(agent_count, win);
         let voronoi = Model::build_voronoi(
             agents
