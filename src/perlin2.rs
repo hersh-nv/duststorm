@@ -27,7 +27,7 @@ impl Model {
         let noise_seed = random::<u32>();
         let perlin = Perlin::new().set_seed(noise_seed);
         let agents = (0..agent_count)
-            .map(|_| Agent::new(win, false, 8f32))
+            .map(|_| Agent::new(win, false, 20f32))
             .collect();
 
         Model {
@@ -41,7 +41,7 @@ impl Model {
 
     pub fn reset_agents(&mut self) {
         self.agents = (0..self.agents.len())
-            .map(|_| Agent::new(self.win, false, 8f32))
+            .map(|_| Agent::new(self.win, false, 20f32))
             .collect();
     }
 
@@ -76,7 +76,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
     draw.rect()
         .wh(app.window_rect().wh())
-        .hsva(0.0, 0.0, 0.0, 0.02);
+        .hsva(0.0, 0.0, 0.0, 0.01);
     // draw the newest agent set
     model.agents.iter().for_each(|agent| {
         draw.line()
