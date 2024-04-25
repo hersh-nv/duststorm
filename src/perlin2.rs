@@ -1,57 +1,15 @@
 // Agents that move following a target, while being pushed around by Perlin noise.
 
-use nannou::noise::{NoiseFn, Perlin, Seedable};
+use nannou::noise::{Perlin, Seedable};
 use nannou::prelude::*;
 
+pub mod agent;
 pub mod pos;
-use nannou::state::Time;
+use agent::Agent;
 use pos::Pos;
 
 fn main() {
     nannou::app(model).update(update).run();
-}
-
-#[derive(Clone)]
-struct Agent {
-    pos: Pos,       // (x,y) position
-    step_size: f32, // in pixels
-    ttl: f32,       // how many seconds to survive before regenerating in random location
-}
-
-impl Agent {
-    pub fn new(win: Rect) -> Agent {
-        Agent {
-            pos: Pos::new(
-                random_range(win.left() * 1.1, win.right() * 1.1),
-                random_range(win.bottom() * 1.1, win.top() * 1.1),
-            ),
-            step_size: 2f32,
-            ttl: random_range(2.0, 10.0),
-        }
-    }
-
-    pub fn update(&mut self, noise: Perlin, noise_scale: f64, target: Pos, win: Rect, time: Time) {
-        if self.ttl < 0.0 {
-            *self = Agent::new(win);
-        } else {
-            // take a fixed step in the noise direction
-            let angle = noise.get([
-                self.pos.x as f64 / noise_scale,
-                self.pos.y as f64 / noise_scale,
-                time.since_start.as_secs_f64() / 25.0,
-            ]) as f32;
-            let angle = angle * 2.0 * PI;
-            self.pos.x += angle.cos() * self.step_size;
-            self.pos.y += angle.sin() * self.step_size;
-            // then take a proportional step in the target direction
-            let dxy = target - self.pos;
-            let dxy = dxy * 0.002; // acceleration factor, tweak for best results
-            self.pos.x += dxy.x;
-            self.pos.y += dxy.y;
-            // update ttl
-            self.ttl -= time.since_prev_update.as_secs_f32();
-        }
-    }
 }
 
 struct Model {
@@ -68,7 +26,9 @@ impl Model {
         let noise_scale = 800.0;
         let noise_seed = random::<u32>();
         let perlin = Perlin::new().set_seed(noise_seed);
-        let agents = (0..agent_count).map(|_| Agent::new(win)).collect();
+        let agents = (0..agent_count)
+            .map(|_| Agent::new(win, false, 2f32))
+            .collect();
 
         Model {
             perlin,
@@ -81,7 +41,7 @@ impl Model {
 
     pub fn reset_agents(&mut self) {
         self.agents = (0..self.agents.len())
-            .map(|_| Agent::new(self.win))
+            .map(|_| Agent::new(self.win, false, 2f32))
             .collect();
     }
 
@@ -102,7 +62,7 @@ fn model(app: &App) -> Model {
 
 fn update(app: &App, model: &mut Model, _update: Update) {
     model.agents.iter_mut().for_each(|a| {
-        a.update(
+        a.update2(
             model.perlin,
             model.noise_scale,
             Pos::new(0.0, 0.0),

@@ -8,39 +8,11 @@ use palette::convert::FromColorUnclamped;
 
 pub mod pos;
 use pos::Pos;
+pub mod agent;
+use agent::Agent;
 
 fn main() {
     nannou::app(model).update(update).run();
-}
-
-#[derive(Clone)]
-struct Agent {
-    pos: Pos,       // (x,y) position
-    step_size: f32, // ??
-    z_offset: f32,
-    z: f32,
-}
-
-impl Agent {
-    pub fn update(&mut self, noise: Perlin, target: Pos, noise_scale: f64) {
-        // take a fixed step in the noise direction
-        let angle = noise.get([
-            self.pos.x as f64 / noise_scale,
-            self.pos.y as f64 / noise_scale,
-            (self.z + self.z_offset * 4.0) as f64,
-        ]) as f32;
-        let angle = angle * 2.0 * PI;
-        self.pos.x += angle.cos() * self.step_size;
-        self.pos.y += angle.sin() * self.step_size;
-        // then take a proportional step in the target direction
-        let dxy = target - self.pos;
-        let dxy = dxy * 0.03; // acceleration factor, tweak for best results
-        self.pos.x += dxy.x;
-        self.pos.y += dxy.y;
-
-        // lastly - push z offset a bit so we're constantly sliding up the x axis of the noise space
-        self.z += 0.02;
-    }
 }
 
 enum TargetMode {
@@ -77,12 +49,7 @@ impl Model {
         let noise_seed = random::<u32>();
         let perlin = Perlin::new().set_seed(noise_seed);
         let agents = (0..agent_count)
-            .map(|_| Agent {
-                pos: Pos::new(0f32, 0f32),
-                step_size: 6f32,
-                z_offset: random_range(0f32, 1.0f32),
-                z: 0.0,
-            })
+            .map(|_| Agent::new(win, true, 5f32))
             .collect();
         let target = Pos::new(0f32, 0f32);
         let target_mode = TargetMode::Circle;
@@ -106,15 +73,7 @@ impl Model {
 
     pub fn reset_agents(&mut self) {
         self.agents = (0..self.agents.len())
-            .map(|_| {
-                // random r and theta around centre
-                Agent {
-                    pos: Pos::new(0f32, 0f32),
-                    step_size: 6f32,
-                    z_offset: random_range(0f32, 1f32),
-                    z: 0.0,
-                }
-            })
+            .map(|_| Agent::new(self.win, true, 5f32))
             .collect();
     }
 
@@ -185,7 +144,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     model
         .agents
         .iter_mut()
-        .for_each(|a| a.update(model.perlin, model.target, model.noise_scale));
+        .for_each(|a| a.update1(model.perlin, model.target, model.noise_scale));
 
     if model.agents_history.len() >= 300 {
         let _ = model.agents_history.pop_front();
