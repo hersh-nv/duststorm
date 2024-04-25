@@ -192,7 +192,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .iter_vertices()
             .map(|vert| Vec2::new(vert.x as f32, vert.y as f32))
             .collect();
-        draw.polyline().weight(1.0).points(cell2).color(WHITE);
+        draw.polyline()
+            .weight(1.0)
+            .points_closed(cell2)
+            .color(WHITE);
     });
     draw.to_frame(app, &frame).unwrap();
 }
