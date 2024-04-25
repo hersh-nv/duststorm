@@ -5,7 +5,8 @@ use pos::Pos;
 
 #[derive(Clone)]
 pub struct Agent {
-    pub pos: Pos,   // (x,y) position
+    pub pos: Pos, // (x,y) position
+    pub prev_pos: Pos,
     step_size: f32, // in pixels
     pub ttl: f32,   // how many seconds to survive before regenerating in random location
     pub z_offset: f32,
@@ -14,14 +15,16 @@ pub struct Agent {
 
 impl Agent {
     pub fn new(win: Rect, start_origin: bool, step_size: f32) -> Agent {
+        let pos = match start_origin {
+            true => Pos::new(0.0, 0.0),
+            false => Pos::new(
+                random_range(win.left() * 1.1, win.right() * 1.1),
+                random_range(win.bottom() * 1.1, win.top() * 1.1),
+            ),
+        };
         Agent {
-            pos: match start_origin {
-                true => Pos::new(0.0, 0.0),
-                false => Pos::new(
-                    random_range(win.left() * 1.1, win.right() * 1.1),
-                    random_range(win.bottom() * 1.1, win.top() * 1.1),
-                ),
-            },
+            pos: pos,
+            prev_pos: pos,
             step_size: step_size,
             ttl: random_range(2.0, 10.0),
             z_offset: random_range(0f32, 1.0f32),
@@ -59,7 +62,9 @@ impl Agent {
     ) {
         if self.ttl < 0.0 {
             *self = Agent::new(win, false, 2f32);
+            self.prev_pos = self.pos;
         } else {
+            self.prev_pos = self.pos;
             // take a fixed step in the noise direction
             let angle = noise.get([
                 self.pos.x as f64 / noise_scale,

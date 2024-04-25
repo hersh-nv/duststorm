@@ -22,12 +22,12 @@ struct Model {
 
 impl Model {
     pub fn new(win: Rect) -> Self {
-        let agent_count = 800;
+        let agent_count = 1000;
         let noise_scale = 800.0;
         let noise_seed = random::<u32>();
         let perlin = Perlin::new().set_seed(noise_seed);
         let agents = (0..agent_count)
-            .map(|_| Agent::new(win, false, 2f32))
+            .map(|_| Agent::new(win, false, 8f32))
             .collect();
 
         Model {
@@ -41,7 +41,7 @@ impl Model {
 
     pub fn reset_agents(&mut self) {
         self.agents = (0..self.agents.len())
-            .map(|_| Agent::new(self.win, false, 2f32))
+            .map(|_| Agent::new(self.win, false, 8f32))
             .collect();
     }
 
@@ -79,9 +79,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .hsva(0.0, 0.0, 0.0, 0.02);
     // draw the newest agent set
     model.agents.iter().for_each(|agent| {
-        draw.ellipse()
-            .x_y(agent.pos.x, agent.pos.y)
-            .radius(0.5)
+        draw.line()
+            .start(Vec2::new(agent.prev_pos.x, agent.prev_pos.y))
+            .end(Vec2::new(agent.pos.x, agent.pos.y))
+            .weight(1.5)
             .hsv(0.5 + agent.ttl / 20.0, 1.0, 1.0);
     });
     draw.to_frame(&app, &frame).unwrap();
