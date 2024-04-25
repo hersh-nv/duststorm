@@ -229,6 +229,8 @@ fn mouse_released(app: &App, model: &mut Model, mouse: MouseButton) {
     match mouse {
         MouseButton::Left => {
             // create bubble
+            // add a bit of jitter to the mouse pos when creating a bubble, to avoid glitchy effects when creating sites on the same spot
+            let mouse_pos = mouse_pos + Pos::new(random_range(-5.0, 5.0), random_range(-5.0, 5.0));
             model.agents.push(Agent {
                 pos: mouse_pos,
                 angle: random_range(-PI, PI),
