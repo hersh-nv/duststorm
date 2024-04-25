@@ -106,7 +106,7 @@ impl Model {
                 .collect(),
             win,
         );
-        let update_mode = UpdateMode::One;
+        let update_mode = UpdateMode::Two;
 
         Model {
             agent_count,
