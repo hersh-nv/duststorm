@@ -59,13 +59,21 @@ impl Agent {
             let scalar = 10.0;
             next_pos = next_pos - dxy * force * scalar;
         }
-        // keep in bounds; assume L/R, T/B symmetry (e.g. left.abs() = right())
-        if next_pos.x.abs() + 50.0 > win.right() {
-            next_pos.x = self.pos.x
+
+        // then repel from bounds
+        let bounds: Vec<Pos> = vec![
+            Pos::new(win.left(), self.pos.y),   // left
+            Pos::new(win.right(), self.pos.y),  // right
+            Pos::new(self.pos.x, win.top()),    // top
+            Pos::new(self.pos.x, win.bottom()), // bottom
+        ];
+        for bound in bounds.iter() {
+            let dxy = *bound - self.pos;
+            let force = dxy.magnitude().pow(-2.0);
+            let scalar = 50.0;
+            next_pos = next_pos - dxy * force * scalar;
         }
-        if next_pos.y.abs() + 50.0 > win.top() {
-            next_pos.y = self.pos.y
-        }
+
         self.pos = next_pos;
     }
 }
@@ -110,11 +118,12 @@ impl Model {
     }
 
     fn build_agents(agent_count: i32, win: Rect) -> Vec<Agent> {
+        let pad = 50.0;
         (0..agent_count)
             .map(|_| Agent {
                 pos: Pos::new(
-                    random_range(win.left().into(), win.right().into()),
-                    random_range(win.bottom().into(), win.top().into()),
+                    random_range(win.left() + pad, win.right() - pad),
+                    random_range(win.bottom() + pad, win.top() - pad),
                 ),
                 angle: random_range(-PI, PI),
                 step_size: 0.3,
