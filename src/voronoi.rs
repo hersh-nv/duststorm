@@ -163,6 +163,7 @@ fn model(app: &App) -> Model {
         .size(1000, 1000)
         .view(view)
         .key_released(key_released)
+        .mouse_released(mouse_released)
         .build()
         .unwrap();
     let win = app.window_rect();
@@ -220,5 +221,19 @@ fn key_released(_app: &App, model: &mut Model, key: Key) {
         }
         Key::R => model.agents = Model::build_agents(model.agent_count, model.win),
         _other_key => {}
+    }
+}
+
+fn mouse_released(app: &App, model: &mut Model, mouse: MouseButton) {
+    match mouse {
+        MouseButton::Left => {
+            model.agent_count += 1;
+            model.agents.push(Agent {
+                pos: Pos::new(app.mouse.x, app.mouse.y),
+                angle: random_range(-PI, PI),
+                step_size: 0.3,
+            })
+        }
+        _ => {}
     }
 }
