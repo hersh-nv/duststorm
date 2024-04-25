@@ -1,6 +1,6 @@
 use nannou::math::num_traits::Pow;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Pos {
     pub x: f32,
     pub y: f32,
@@ -11,7 +11,7 @@ impl Pos {
         Pos { x, y }
     }
 
-    pub fn radius(&self) -> f32 {
+    pub fn magnitude(&self) -> f32 {
         (self.x * self.x + self.y * self.y).sqrt()
     }
 

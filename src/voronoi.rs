@@ -45,7 +45,28 @@ impl Agent {
         }
     }
 
-    fn update2(&mut self, win: Rect, agent_pos_vec: &Vec<Pos>) {}
+    fn update2(&mut self, win: Rect, sites_vec: &Vec<Pos>) {
+        // repel from every site with inverse cube power
+        let mut next_pos = self.pos;
+        for site in sites_vec.iter() {
+            // sites vec includes current agent; skip if match
+            if self.pos.x - site.x < std::f32::EPSILON && self.pos.y - site.y < std::f32::EPSILON {
+                continue;
+            }
+            let dxy = *site - self.pos;
+            let force = dxy.magnitude().pow(-3.0);
+            let scalar = 4000.0;
+            next_pos = next_pos - dxy * force * scalar;
+        }
+        // keep in bounds; assume L/R, T/B symmetry (e.g. left.abs() = right())
+        if next_pos.x.abs() + 50.0 > win.right() {
+            next_pos.x = self.pos.x
+        }
+        if next_pos.y.abs() + 50.0 > win.top() {
+            next_pos.y = self.pos.y
+        }
+        self.pos = next_pos;
+    }
 }
 
 enum UpdateMode {
@@ -63,7 +84,7 @@ struct Model {
 
 impl Model {
     fn new(win: Rect) -> Self {
-        let agent_count = 50;
+        let agent_count = 40;
         let agents: Vec<Agent> = Model::build_agents(agent_count, win);
         let voronoi = Model::build_voronoi(
             agents
