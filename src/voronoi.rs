@@ -187,13 +187,13 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
 fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
     draw.background().color(BLACK);
-    // draw points
-    model.get_sites().iter().for_each(|site| {
-        draw.ellipse()
-            .x_y(site.x as f32, site.y as f32)
-            .radius(1.0)
-            .color(WHITE);
-    });
+    // // draw points
+    // model.get_sites().iter().for_each(|site| {
+    //     draw.ellipse()
+    //         .x_y(site.x as f32, site.y as f32)
+    //         .radius(1.0)
+    //         .color(WHITE);
+    // });
     // draw cell bounds
     model.voronoi.iter_cells().for_each(|cell| {
         // cell verts are in Points which can't Into a Vec2, stupidly
