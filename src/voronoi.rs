@@ -225,14 +225,32 @@ fn key_released(_app: &App, model: &mut Model, key: Key) {
 }
 
 fn mouse_released(app: &App, model: &mut Model, mouse: MouseButton) {
+    let mouse_pos = Pos::new(app.mouse.x, app.mouse.y);
     match mouse {
         MouseButton::Left => {
-            model.agent_count += 1;
+            // create bubble
             model.agents.push(Agent {
-                pos: Pos::new(app.mouse.x, app.mouse.y),
+                pos: mouse_pos,
                 angle: random_range(-PI, PI),
                 step_size: 0.3,
             })
+        }
+        MouseButton::Right => {
+            // delete bubble
+            // by definition, you can identify the voronoi cell clicked in by
+            // finding the nearest site
+            let mut nearest_site_index: Option<usize> = None;
+            let mut nearest_len = 10000.0;
+            for (index, agent) in model.agents.iter().enumerate() {
+                let len = (agent.pos - mouse_pos).magnitude();
+                if len < nearest_len {
+                    nearest_site_index = Some(index);
+                    nearest_len = len;
+                }
+            }
+            if let Some(index) = nearest_site_index {
+                model.agents.remove(index);
+            }
         }
         _ => {}
     }
