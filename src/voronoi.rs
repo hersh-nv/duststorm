@@ -5,7 +5,11 @@
 // because the voronoice lib uses f64s while nannou and rust's math constants
 // use f32s.
 
+use std::collections::VecDeque;
+
+use geo_types::{Coordinate, LineString, Polygon};
 use nannou::prelude::*;
+use offset_polygon::{offset_polygon, CombinatorialExplosionError};
 use voronoice::*;
 
 pub mod pos;
@@ -56,7 +60,7 @@ impl Agent {
                 continue;
             }
             let force = dxy.magnitude().pow(-3.0);
-            let scalar = 1000.0;
+            let scalar = 100.0;
             next_pos = next_pos - dxy * force * scalar;
         }
 
@@ -70,7 +74,7 @@ impl Agent {
         for bound in bounds.iter() {
             let dxy = *bound - self.pos;
             let force = dxy.magnitude().pow(-2.0);
-            let scalar = 50.0;
+            let scalar = 5.0;
             next_pos = next_pos - dxy * force * scalar;
         }
 
@@ -93,7 +97,7 @@ struct Model {
 
 impl Model {
     fn new(win: Rect) -> Self {
-        let agent_count = 100;
+        let agent_count = 60;
         let agents: Vec<Agent> = Model::build_agents(agent_count, win);
         let voronoi = Model::build_voronoi(
             agents
@@ -160,7 +164,7 @@ impl Model {
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .size(1000, 1000)
+        .size(600, 600)
         .view(view)
         .key_released(key_released)
         .mouse_released(mouse_released)
@@ -187,6 +191,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
 fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
     draw.background().color(BLACK);
+
     // // draw points
     // model.get_sites().iter().for_each(|site| {
     //     draw.ellipse()
@@ -195,19 +200,83 @@ fn view(app: &App, model: &Model, frame: Frame) {
     //         .color(WHITE);
     // });
     // draw cell bounds
-    model.voronoi.iter_cells().for_each(|cell| {
-        // cell verts are in Points which can't Into a Vec2, stupidly
-        // so copy the cell and manually convert it ..?
-        let cell2: Vec<Vec2> = cell
-            .clone()
-            .iter_vertices()
-            .map(|vert| Vec2::new(vert.x as f32, vert.y as f32))
-            .collect();
+
+    for cell in model.voronoi.iter_cells() {
+        // offset_polygon undocumented behaviour: all coordinates must be positive
+        let cell_iter = cell.iter_vertices().map(|vert| Coordinate::<f64> {
+            x: vert.x - model.win.left() as f64,
+            y: vert.y - model.win.bottom() as f64,
+        });
+        // polygon needs to be closed for offset to work so repeat first element
+        let first = cell_iter.clone().next();
+        let cell_iter = cell_iter.chain(first);
+        // offset_polygon undocumented behaviour: coords must be ordered
+        // counter-clockwise. cell_iter doesn't impl DoubleEndedIterator so
+        // can't be reversed directly. instead collect the vertices into a
+        // reversible Deque. yes, this feels gross.
+        let reversed_cell: VecDeque<Coordinate<f64>> = cell_iter.collect();
+        let reversed_cell = reversed_cell.into_iter().rev();
+        // turn into geo_types Polygon to make use of offset crate
+        let poly: LineString<f64> = reversed_cell.collect();
+
+        // println!("{poly:?}");
+        // shrink and round the polygon
+        let poly = match offset_polygon(&poly, -15.0, 0.0) {
+            Ok(poly) => {
+                if !poly.is_empty() {
+                    poly[0].clone()
+                } else {
+                    continue;
+                }
+            }
+            Err(e) => {
+                // println!("{poly:?}");
+                continue;
+            }
+        };
+        let poly = match offset_polygon(&poly, 13.0, 10.0) {
+            Ok(poly) => {
+                if !poly.is_empty() {
+                    poly[0].clone()
+                } else {
+                    continue;
+                }
+            }
+            Err(e) => {
+                // println!("{poly:?}");
+                continue;
+            }
+        };
+
+        // println!("{poly:?}");
+        // this needs to be a Vec<Vec2> to draw it
+        let cell_drawable = poly
+            .into_points()
+            .into_iter()
+            .map(|point| {
+                Vec2::new(
+                    point.x() as f32 + model.win.left(),
+                    point.y() as f32 + model.win.bottom(),
+                )
+            })
+            .collect::<Vec<Vec2>>();
         draw.polyline()
             .weight(1.0)
-            .points_closed(cell2)
+            .points_closed(cell_drawable)
             .color(WHITE);
-    });
+
+        // // cell verts are in Points which can't Into a Vec2, stupidly
+        // // so copy the cell and manually convert it ..?
+        // let cell2: Vec<Vec2> = cell
+        //     .clone()
+        //     .iter_vertices()
+        //     .map(|vert| Vec2::new(vert.x as f32, vert.y as f32))
+        //     .collect();
+        // draw.polyline()
+        //     .weight(1.0)
+        //     .points_closed(cell2)
+        //     .color(WHITE);
+    }
     draw.to_frame(app, &frame).unwrap();
 }
 
