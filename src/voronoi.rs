@@ -91,6 +91,7 @@ struct Model {
     agent_count: i32,
     agents: Vec<Agent>,
     voronoi: Voronoi,
+    bubbles: Vec<Vec<Vec2>>,
     win: Rect,
     update_mode: UpdateMode,
 }
@@ -110,12 +111,14 @@ impl Model {
                 .collect(),
             win,
         );
+        let bubbles = Vec::new();
         let update_mode = UpdateMode::Two;
 
         Model {
             agent_count,
             agents,
             voronoi,
+            bubbles,
             win,
             update_mode,
         }
@@ -186,21 +189,8 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
         });
     // redraw voronoi cells
     model.rebuild_voronoi();
-}
-
-fn view(app: &App, model: &Model, frame: Frame) {
-    let draw = app.draw();
-    draw.background().color(BLACK);
-
-    // // draw points
-    // model.get_sites().iter().for_each(|site| {
-    //     draw.ellipse()
-    //         .x_y(site.x as f32, site.y as f32)
-    //         .radius(1.0)
-    //         .color(WHITE);
-    // });
-    // draw cell bounds
-
+    // turn cells into bubbles
+    model.bubbles = Vec::new();
     for cell in model.voronoi.iter_cells() {
         // offset_polygon undocumented behaviour: all coordinates must be positive
         let cell_iter = cell.iter_vertices().map(|vert| Coordinate::<f64> {
@@ -216,11 +206,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
         // reversible Deque. yes, this feels gross.
         let reversed_cell: VecDeque<Coordinate<f64>> = cell_iter.collect();
         let reversed_cell = reversed_cell.into_iter().rev();
-        // turn into geo_types Polygon to make use of offset crate
+        // turn into geo_types LineString to make use of offset crate
         let poly: LineString<f64> = reversed_cell.collect();
 
-        // println!("{poly:?}");
-        // shrink and round the polygon
+        // shrink the polygon
         let poly = match offset_polygon(&poly, -15.0, 0.0) {
             Ok(poly) => {
                 if !poly.is_empty() {
@@ -230,11 +219,12 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 }
             }
             Err(e) => {
-                // println!("{poly:?}");
+                println!("Error while shrinking: {e}");
                 continue;
             }
         };
-        let poly = match offset_polygon(&poly, 13.0, 10.0) {
+        // expand and round the polygon
+        let poly = match offset_polygon(&poly, 15.0, 10.0) {
             Ok(poly) => {
                 if !poly.is_empty() {
                     poly[0].clone()
@@ -243,14 +233,12 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 }
             }
             Err(e) => {
-                // println!("{poly:?}");
+                println!("Error while expanding: {e}");
                 continue;
             }
         };
-
-        // println!("{poly:?}");
         // this needs to be a Vec<Vec2> to draw it
-        let cell_drawable = poly
+        let poly = poly
             .into_points()
             .into_iter()
             .map(|point| {
@@ -260,22 +248,27 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 )
             })
             .collect::<Vec<Vec2>>();
+        model.bubbles.push(poly);
+    }
+}
+
+fn view(app: &App, model: &Model, frame: Frame) {
+    let draw = app.draw();
+    draw.background().color(BLACK);
+
+    // // draw points
+    // model.get_sites().iter().for_each(|site| {
+    //     draw.ellipse()
+    //         .x_y(site.x as f32, site.y as f32)
+    //         .radius(1.0)
+    //         .color(WHITE);
+    // });
+    // draw bubbles
+    for bubble in model.bubbles.iter() {
         draw.polyline()
             .weight(1.0)
-            .points_closed(cell_drawable)
+            .points_closed(bubble.clone())
             .color(WHITE);
-
-        // // cell verts are in Points which can't Into a Vec2, stupidly
-        // // so copy the cell and manually convert it ..?
-        // let cell2: Vec<Vec2> = cell
-        //     .clone()
-        //     .iter_vertices()
-        //     .map(|vert| Vec2::new(vert.x as f32, vert.y as f32))
-        //     .collect();
-        // draw.polyline()
-        //     .weight(1.0)
-        //     .points_closed(cell2)
-        //     .color(WHITE);
     }
     draw.to_frame(app, &frame).unwrap();
 }
