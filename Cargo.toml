@@ -2,7 +2,7 @@
 name = "duststorm"
 version = "0.1.0"
 edition = "2021"
-default-run = "perlin"
+default-run = "perlin1"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -18,8 +18,8 @@ name = "voronoi"
 path = "src/voronoi.rs"
 
 [[bin]]
-name = "perlin"
-path = "src/perlin.rs"
+name = "perlin1"
+path = "src/perlin1.rs"
 
 [[bin]]
 name = "perlin2"

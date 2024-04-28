@@ -4,9 +4,9 @@ Experiments with visualisers, written in nannou for Rust
 
 ## Usage
 
-### Perlin
+### Perlin 1
 
-```cargo run --bin perlin```
+```cargo run --bin perlin1```
 
 A cloud of agents pushing through 3-dimensional Perlin noise
 
@@ -21,9 +21,26 @@ D to cycle targetting modes:
 C to cycle colour modes:
 -  White
 -  Red/blue
+-  Hue wheel
 
-### Voronoi
+### Perlin 2
+
+```cargo run --bin perlin2```
+
+A cloud of agents pushing through 3-dimensional Perlin noise
+
+R to reset
+
+Spacebar to re-seed the Perlin noise
+
+### Voronoi bubbles
 
 ```cargo run --bin voronoi```
 
-Voronoi cells drawn around a cloud of wandering agents
+A mesh of bubbles pushing against each other until they move to equilibrium
+
+Left mouse button to add bubble
+
+Right mouse button to pop bubble
+
+R to reset
