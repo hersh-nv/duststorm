@@ -27,7 +27,7 @@ impl Model {
         let noise_seed = random::<u32>();
         let perlin = Perlin::new().set_seed(noise_seed);
         let agents = (0..agent_count)
-            .map(|_| Agent::new(win, false, 20f32))
+            .map(|_| Agent::new(win, false, 2f32))
             .collect();
 
         Model {
@@ -82,7 +82,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
         draw.line()
             .start(Vec2::new(agent.prev_pos.x, agent.prev_pos.y))
             .end(Vec2::new(agent.pos.x, agent.pos.y))
-            .weight(1.5)
+            .weight(0.5)
             .hsv(0.5 + agent.ttl / 20.0, 1.0, 1.0);
     });
     draw.to_frame(&app, &frame).unwrap();
