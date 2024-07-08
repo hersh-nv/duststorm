@@ -7,7 +7,7 @@
 
 use std::collections::VecDeque;
 
-use geo_types::{Coordinate, LineString, Polygon};
+use geo_types::{Coordinate, Line, LineString};
 use nannou::prelude::*;
 use offset_polygon::{offset_polygon, CombinatorialExplosionError};
 use voronoice::*;
@@ -163,6 +163,18 @@ impl Model {
             self.win,
         );
     }
+
+    pub fn poly_to_drawable(poly: LineString<f64>, win: Rect) -> Vec<Vec2> {
+        poly.into_points()
+            .into_iter()
+            .map(|point| {
+                Vec2::new(
+                    point.x() as f32 + win.left(),
+                    point.y() as f32 + win.bottom(),
+                )
+            })
+            .collect::<Vec<Vec2>>()
+    }
 }
 
 fn model(app: &App) -> Model {
@@ -209,45 +221,99 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
         // turn into geo_types LineString to make use of offset crate
         let poly: LineString<f64> = reversed_cell.collect();
 
+        // check whether there's tiny lines in the polygon, can be problematic
+        if !poly
+            .clone()
+            .lines()
+            .filter(|line| line.dx() * line.dx() + line.dy() * line.dy() < 1.0)
+            .collect::<Vec<Line<f64>>>()
+            .is_empty()
+        {
+            continue;
+        }
         // shrink the polygon
-        let poly = match offset_polygon(&poly, -15.0, 0.0) {
-            Ok(poly) => {
-                if !poly.is_empty() {
-                    poly[0].clone()
+        let poly_shrunk = offset_polygon(&poly.clone(), -15.0, 0.0)
+            .and_then(|poly_vec| {
+                if !poly_vec.is_empty() {
+                    Ok(poly_vec[0].clone())
                 } else {
-                    continue;
+                    println!("Shrinking: Empty array");
+                    // println!("{poly:?}");
+                    Err(CombinatorialExplosionError)
                 }
-            }
-            Err(e) => {
-                println!("Error while shrinking: {e}");
-                continue;
-            }
-        };
-        // expand and round the polygon
-        let poly = match offset_polygon(&poly, 15.0, 10.0) {
-            Ok(poly) => {
-                if !poly.is_empty() {
-                    poly[0].clone()
-                } else {
-                    continue;
-                }
-            }
-            Err(e) => {
-                println!("Error while expanding: {e}");
-                continue;
-            }
-        };
-        // this needs to be a Vec<Vec2> to draw it
-        let poly = poly
+            })
+            .or_else(|_| {
+                offset_polygon(&poly, -13.0, 0.0).and_then(|poly_vec| {
+                    if !poly_vec.is_empty() {
+                        Ok(poly_vec[0].clone())
+                    } else {
+                        println!("Couldn't shrink less either");
+                        Err(CombinatorialExplosionError)
+                    }
+                })
+            })
+            .unwrap_or_else(|_| LineString(vec![]));
+        // if poly_shrunk.is_none() {
+        //     continue;
+        // }
+        // let poly_shrunk = poly_shrunk.unwrap();
+        if poly_shrunk
+            .clone()
             .into_points()
             .into_iter()
-            .map(|point| {
-                Vec2::new(
-                    point.x() as f32 + model.win.left(),
-                    point.y() as f32 + model.win.bottom(),
-                )
+            .next()
+            .is_none()
+        {
+            println!("Skipping; can't shrink");
+            continue;
+        }
+
+        //     Ok(poly) => {
+        //         if !poly.is_empty() {
+        //             poly[0].clone()
+        //         } else {
+        //             continue;
+        //         }
+        //     }
+        //     Err(e) => {
+        //         // println!("Error while shrinking: {e}");
+        //         // println!("{poly:?}");
+        //         offset_polygon(&poly.clone(), -16.0, 0.0).unwrap()[0]
+        //     }
+        // };
+        // expand and round the polygon
+        let poly_expanded = offset_polygon(&poly_shrunk.clone(), 15.0, 10.0)
+            .and_then(|poly_vec| {
+                if !poly_vec.is_empty() {
+                    Ok(poly_vec[0].clone())
+                } else {
+                    println!("Expanding: Empty array");
+                    Err(CombinatorialExplosionError)
+                }
             })
-            .collect::<Vec<Vec2>>();
+            .or_else(|_| {
+                offset_polygon(&poly_shrunk, 14.0, 10.0).and_then(|poly_vec| {
+                    if !poly_vec.is_empty() {
+                        Ok(poly_vec[0].clone())
+                    } else {
+                        println!("Couldn't expand less either");
+                        Err(CombinatorialExplosionError)
+                    }
+                })
+            })
+            .unwrap_or_else(|_| LineString(vec![]));
+        if poly_expanded
+            .clone()
+            .into_points()
+            .into_iter()
+            .next()
+            .is_none()
+        {
+            continue;
+        }
+
+        // this needs to be a Vec<Vec2> to draw it
+        let poly = Model::poly_to_drawable(poly_expanded, model.win);
         model.bubbles.push(poly);
     }
 }
@@ -270,6 +336,118 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .points_closed(bubble.clone())
             .color(WHITE);
     }
+    {
+        // let poly_cant_shrink = LineString(vec![
+        //     Coordinate {
+        //         x: 362.2262875427125,
+        //         y: 297.2659673999376,
+        //     },
+        //     Coordinate {
+        //         x: 403.4698561434615,
+        //         y: 310.9128019199989,
+        //     },
+        //     Coordinate {
+        //         x: 413.7342464117295,
+        //         y: 322.6597251269972,
+        //     },
+        //     Coordinate {
+        //         x: 370.982704865431,
+        //         y: 386.4766757587979,
+        //     },
+        //     Coordinate {
+        //         x: 346.4323486818283,
+        //         y: 390.5680041420337,
+        //     },
+        //     Coordinate {
+        //         x: 336.9118308467859,
+        //         y: 385.9567792799352,
+        //     },
+        //     Coordinate {
+        //         x: 320.7164943079442,
+        //         y: 346.8909439110047,
+        //     },
+        //     Coordinate {
+        //         x: 345.69326540749876,
+        //         y: 302.56347579489073,
+        //     },
+        //     Coordinate {
+        //         x: 362.2262875427125,
+        //         y: 297.2659673999376,
+        //     },
+        // ]);
+        // let poly_shrunk = match offset_polygon(&poly_cant_shrink, -16.0, 0.0) {
+        //     Ok(poly) => {
+        //         if !poly.is_empty() {
+        //             poly[0].clone()
+        //         } else {
+        //             return;
+        //         }
+        //     }
+        //     Err(e) => {
+        //         println!("Error while shrinking IN VIEW: {e}");
+        //         return;
+        //     }
+        // };
+        // let poly_cant_shrink = Model::poly_to_drawable(poly_cant_shrink, model.win);
+        // let poly_shrunk = Model::poly_to_drawable(poly_shrunk, model.win);
+        // draw.polyline()
+        //     .weight(1.0)
+        //     .points_closed(poly_cant_shrink)
+        //     .color(RED);
+        // draw.polyline()
+        //     .weight(1.0)
+        //     .points_closed(poly_shrunk)
+        //     .color(WHITE);
+
+        // let poly_cant_expand = LineString(vec![
+        //     Coordinate {
+        //         x: 488.599908961678,
+        //         y: 166.0741409230828,
+        //     },
+        //     Coordinate {
+        //         x: 500.1929193417004,
+        //         y: 184.48211473264413,
+        //     },
+        //     Coordinate {
+        //         x: 478.52517402399883,
+        //         y: 199.477123223611,
+        //     },
+        //     Coordinate {
+        //         x: 488.53968212606,
+        //         y: 166.13926038495404,
+        //     },
+        //     Coordinate {
+        //         x: 489.53774936847253,
+        //         y: 162.8167378514251,
+        //     },
+        //     Coordinate {
+        //         x: 485.8509813443965,
+        //         y: 161.70925329471507,
+        //     },
+        //     Coordinate {
+        //         x: 488.5723762474796,
+        //         y: 166.0304230736842,
+        //     },
+        //     Coordinate {
+        //         x: 488.53968212606,
+        //         y: 166.13926038495404,
+        //     },
+        //     Coordinate {
+        //         x: 488.53968212606,
+        //         y: 166.13926038495404,
+        //     },
+        //     Coordinate {
+        //         x: 488.599908961678,
+        //         y: 166.0741409230828,
+        //     },
+        // ]);
+        // let poly_cant_expand = Model::poly_to_drawable(poly_cant_expand, model.win);
+        // draw.polyline()
+        //     .weight(1.0)
+        //     .points_closed(poly_cant_expand)
+        //     .color(RED);
+    }
+
     draw.to_frame(app, &frame).unwrap();
 }
 
