@@ -41,7 +41,7 @@ impl Model {
 
     pub fn reset_agents(&mut self) {
         self.agents = (0..self.agents.len())
-            .map(|_| Agent::new(self.win, false, 20f32))
+            .map(|_| Agent::new(self.win, false, 2f32))
             .collect();
     }
 

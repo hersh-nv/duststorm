@@ -10,7 +10,9 @@ Experiments with visualisers, written in nannou for Rust
 
 A cloud of agents pushing through 3-dimensional Perlin noise
 
-R to reset
+R to reset agents
+
+Spacebar to re-seed the noise field
 
 D to cycle targetting modes:
 -  Circle
@@ -22,8 +24,22 @@ C to cycle colour modes:
 -  White
 -  Red/blue
 
+### Perlin2
+
+```cargo run --bin perlin2```
+
+A different take on the same Perlin logic, without a target attractor point
+
+R to reset agents
+
+Spacebar to re-seed the noise field
+
 ### Voronoi
 
 ```cargo run --bin voronoi```
 
-Voronoi cells drawn around a cloud of wandering agents
+A mesh of bubbles pushing against each other until they move to equilibrium
+
+Left mouse button to add bubble
+
+Right mouse button to pop bubble
